@@ -63,7 +63,7 @@ export async function getPlugins(): Promise<UnifiedPlugin[]> {
     }
 
     // Add skills
-    const skills = getAllSkills()
+    const skills = await getAllSkills()
     for (const skill of skills) {
       plugins.push({
         type: 'skill',
@@ -114,7 +114,7 @@ export async function getPluginStats(): Promise<{
     const registryPath = path.join(process.cwd(), 'public', 'registry.json')
     const data = await fs.readFile(registryPath, 'utf-8')
     const registry: RegistryData = JSON.parse(data)
-    const skills = getAllSkills()
+    const skills = await getAllSkills()
 
     return {
       total:

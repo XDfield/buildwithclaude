@@ -3,8 +3,9 @@ import path from 'path'
 import matter from 'gray-matter'
 import { Command } from './commands-types'
 import { CategoryMetadata, generateCategoryMetadata } from './category-utils'
+import { getSkillItemsByType, getSkillItemBySlug } from './skill-items-db'
 
-export function getAllCommands(): Command[] {
+function getAllCommandsFromFiles(): Command[] {
   const commandsDirectory = path.join(process.cwd(), '../plugins/all-commands/commands')
   const fileNames = fs.readdirSync(commandsDirectory)
   
@@ -32,7 +33,7 @@ export function getAllCommands(): Command[] {
   return commands.sort((a, b) => a.slug.localeCompare(b.slug))
 }
 
-export function getCommandBySlug(slug: string): Command | null {
+function getCommandBySlugFromFiles(slug: string): Command | null {
   const commandsDirectory = path.join(process.cwd(), '../plugins/all-commands/commands')
   const filePath = path.join(commandsDirectory, `${slug}.md`)
   
@@ -55,27 +56,61 @@ export function getCommandBySlug(slug: string): Command | null {
   }
 }
 
-export function getCommandsByCategory(category: string): Command[] {
-  return getAllCommands().filter(command => command.category === category)
+export async function getAllCommands(): Promise<Command[]> {
+  const dbItems = await getSkillItemsByType('command')
+  if (dbItems.length > 0) {
+    return dbItems.map(item => {
+      const meta = (() => { try { return JSON.parse(item.metadata || '{}') } catch { return {} } })()
+      return {
+        slug: item.slug,
+        description: item.description || '',
+        category: item.category || 'miscellaneous',
+        argumentHint: meta.argumentHint,
+        allowedTools: meta.allowedTools,
+        model: meta.model,
+        content: item.content,
+      } as Command
+    })
+  }
+  return getAllCommandsFromFiles()
 }
 
-export function searchCommands(query: string): Command[] {
+export async function getCommandBySlug(slug: string): Promise<Command | null> {
+  const dbItem = await getSkillItemBySlug('command', slug)
+  if (dbItem) {
+    const meta = (() => { try { return JSON.parse(dbItem.metadata || '{}') } catch { return {} } })()
+    return {
+      slug: dbItem.slug,
+      description: dbItem.description || '',
+      category: dbItem.category || 'miscellaneous',
+      argumentHint: meta.argumentHint,
+      allowedTools: meta.allowedTools,
+      model: meta.model,
+      content: dbItem.content,
+    } as Command
+  }
+  return getCommandBySlugFromFiles(slug)
+}
+
+export async function getCommandsByCategory(category: string): Promise<Command[]> {
+  const commands = await getAllCommands()
+  return commands.filter(command => command.category === category)
+}
+
+export async function searchCommands(query: string): Promise<Command[]> {
   const normalizedQuery = query.toLowerCase()
-  return getAllCommands().filter(command => 
+  const commands = await getAllCommands()
+  return commands.filter(command => 
     command.slug.toLowerCase().includes(normalizedQuery) ||
     command.description.toLowerCase().includes(normalizedQuery) ||
     command.content.toLowerCase().includes(normalizedQuery)
   )
 }
 
-/**
- * Get all unique categories from commands with counts
- */
-export function getAllCommandCategories(): CategoryMetadata[] {
-  const commands = getAllCommands()
+export async function getAllCommandCategories(): Promise<CategoryMetadata[]> {
+  const commands = await getAllCommands()
   const categoryCounts: Record<string, number> = {}
   
-  // Count commands per category
   commands.forEach(command => {
     const category = command.category
     categoryCounts[category] = (categoryCounts[category] || 0) + 1
@@ -84,11 +119,8 @@ export function getAllCommandCategories(): CategoryMetadata[] {
   return generateCategoryMetadata(categoryCounts)
 }
 
-/**
- * Get all unique command category IDs
- */
-export function getAllCommandCategoryIds(): string[] {
-  const commands = getAllCommands()
+export async function getAllCommandCategoryIds(): Promise<string[]> {
+  const commands = await getAllCommands()
   const categories = new Set(commands.map(c => c.category))
   return Array.from(categories).sort()
 }

@@ -2,10 +2,12 @@ import { Suspense } from 'react'
 import { getAllHooks, getAllHookCategories, getAllEventTypes } from '@/lib/hooks-server'
 import HooksPageClient from './hooks-client'
 
-export default function HooksPage() {
-  const allHooks = getAllHooks()
-  const categories = getAllHookCategories()
-  const eventTypes = getAllEventTypes()
+export default async function HooksPage() {
+  const [allHooks, categories, eventTypes] = await Promise.all([
+    getAllHooks(),
+    getAllHookCategories(),
+    getAllEventTypes(),
+  ])
 
   return (
     <Suspense fallback={null}>

@@ -3,8 +3,9 @@ import path from 'path'
 import matter from 'gray-matter'
 import { Subagent } from './subagents-types'
 import { CategoryMetadata, generateCategoryMetadata } from './category-utils'
+import { getSkillItemsByType, getSkillItemBySlug } from './skill-items-db'
 
-export function getAllSubagents(): Subagent[] {
+function getAllSubagentsFromFiles(): Subagent[] {
   const subagentsDirectory = path.join(process.cwd(), '../plugins/all-agents/agents')
   const fileNames = fs.readdirSync(subagentsDirectory)
   
@@ -31,7 +32,7 @@ export function getAllSubagents(): Subagent[] {
   return subagents.sort((a, b) => a.name.localeCompare(b.name))
 }
 
-export function getSubagentBySlug(slug: string): Subagent | null {
+function getSubagentBySlugFromFiles(slug: string): Subagent | null {
   const subagentsDirectory = path.join(process.cwd(), '../plugins/all-agents/agents')
   const filePath = path.join(subagentsDirectory, `${slug}.md`)
   
@@ -53,27 +54,59 @@ export function getSubagentBySlug(slug: string): Subagent | null {
   }
 }
 
-export function getSubagentsByCategory(category: string): Subagent[] {
-  return getAllSubagents().filter(subagent => subagent.category === category)
+export async function getAllSubagents(): Promise<Subagent[]> {
+  const dbItems = await getSkillItemsByType('subagent')
+  if (dbItems.length > 0) {
+    return dbItems.map(item => {
+      const meta = (() => { try { return JSON.parse(item.metadata || '{}') } catch { return {} } })()
+      return {
+        slug: item.slug,
+        name: item.name,
+        description: item.description || '',
+        tools: meta.tools,
+        content: item.content,
+        category: item.category || 'specialized-domains',
+      } as Subagent
+    })
+  }
+  return getAllSubagentsFromFiles()
 }
 
-export function searchSubagents(query: string): Subagent[] {
+export async function getSubagentBySlug(slug: string): Promise<Subagent | null> {
+  const dbItem = await getSkillItemBySlug('subagent', slug)
+  if (dbItem) {
+    const meta = (() => { try { return JSON.parse(dbItem.metadata || '{}') } catch { return {} } })()
+    return {
+      slug: dbItem.slug,
+      name: dbItem.name,
+      description: dbItem.description || '',
+      tools: meta.tools,
+      content: dbItem.content,
+      category: dbItem.category || 'specialized-domains',
+    } as Subagent
+  }
+  return getSubagentBySlugFromFiles(slug)
+}
+
+export async function getSubagentsByCategory(category: string): Promise<Subagent[]> {
+  const subagents = await getAllSubagents()
+  return subagents.filter(subagent => subagent.category === category)
+}
+
+export async function searchSubagents(query: string): Promise<Subagent[]> {
   const normalizedQuery = query.toLowerCase()
-  return getAllSubagents().filter(subagent => 
+  const subagents = await getAllSubagents()
+  return subagents.filter(subagent => 
     subagent.name.toLowerCase().includes(normalizedQuery) ||
     subagent.description.toLowerCase().includes(normalizedQuery) ||
     subagent.content.toLowerCase().includes(normalizedQuery)
   )
 }
 
-/**
- * Get all unique categories from subagents with counts
- */
-export function getAllCategories(): CategoryMetadata[] {
-  const subagents = getAllSubagents()
+export async function getAllCategories(): Promise<CategoryMetadata[]> {
+  const subagents = await getAllSubagents()
   const categoryCounts: Record<string, number> = {}
   
-  // Count subagents per category
   subagents.forEach(subagent => {
     const category = subagent.category
     categoryCounts[category] = (categoryCounts[category] || 0) + 1
@@ -82,11 +115,8 @@ export function getAllCategories(): CategoryMetadata[] {
   return generateCategoryMetadata(categoryCounts)
 }
 
-/**
- * Get all unique category IDs
- */
-export function getAllCategoryIds(): string[] {
-  const subagents = getAllSubagents()
+export async function getAllCategoryIds(): Promise<string[]> {
+  const subagents = await getAllSubagents()
   const categories = new Set(subagents.map(s => s.category))
   return Array.from(categories).sort()
 }

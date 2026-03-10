@@ -41,12 +41,12 @@ const BUILD_WITH_CLAUDE_ID = 'build-with-claude'
 /**
  * Load all local Build with Claude plugins and convert to UnifiedPlugin format
  */
-function getLocalBuildWithClaudePlugins(): UnifiedPlugin[] {
+async function getLocalBuildWithClaudePlugins(): Promise<UnifiedPlugin[]> {
   const results: UnifiedPlugin[] = []
 
   // Load subagents
   try {
-    const subagents = getAllSubagents()
+    const subagents = await getAllSubagents()
     for (const s of subagents) {
       results.push({
         type: 'subagent',
@@ -64,7 +64,7 @@ function getLocalBuildWithClaudePlugins(): UnifiedPlugin[] {
 
   // Load commands
   try {
-    const commands = getAllCommands()
+    const commands = await getAllCommands()
     for (const c of commands) {
       results.push({
         type: 'command',
@@ -82,7 +82,7 @@ function getLocalBuildWithClaudePlugins(): UnifiedPlugin[] {
 
   // Load hooks
   try {
-    const hooks = getAllHooks()
+    const hooks = await getAllHooks()
     for (const h of hooks) {
       results.push({
         type: 'hook',
@@ -100,7 +100,7 @@ function getLocalBuildWithClaudePlugins(): UnifiedPlugin[] {
 
   // Load skills
   try {
-    const skills = getAllSkills()
+    const skills = await getAllSkills()
     for (const s of skills) {
       results.push({
         type: 'skill',
@@ -271,7 +271,7 @@ export async function getPluginsPaginated(options: {
   // 1. Get local Build with Claude plugins (always loaded from files)
   let localPlugins: UnifiedPlugin[] = []
   if (!isOtherMarketplace) {
-    const allLocalPlugins = getLocalBuildWithClaudePlugins()
+    const allLocalPlugins = await getLocalBuildWithClaudePlugins()
     localPlugins = filterLocalPlugins(allLocalPlugins, { search, type, marketplaceId, category })
     localPlugins = sortPlugins(localPlugins, sort, search)
   }
@@ -478,7 +478,7 @@ export async function getPluginsPaginated(options: {
  */
 export async function getPluginMarketplaces(): Promise<MarketplaceOption[]> {
   // Get local Build with Claude plugin count
-  const localPlugins = getLocalBuildWithClaudePlugins()
+  const localPlugins = await getLocalBuildWithClaudePlugins()
   const localCount = localPlugins.length
 
   // Get registered marketplaces from marketplaces table
@@ -563,7 +563,7 @@ export async function getPluginStatsForUI(): Promise<{
   plugins: number
 }> {
   // Get local Build with Claude plugins
-  const localPlugins = getLocalBuildWithClaudePlugins()
+  const localPlugins = await getLocalBuildWithClaudePlugins()
 
   // Count local plugins by type
   const localCounts = {
@@ -745,7 +745,7 @@ export async function getPluginCategories(): Promise<PluginCategory[]> {
   }
 
   // Also include local plugin categories
-  const localPlugins = getLocalBuildWithClaudePlugins()
+  const localPlugins = await getLocalBuildWithClaudePlugins()
   const pluginsOnly = localPlugins.filter(p => p.type === 'plugin')
   for (const p of pluginsOnly) {
     const category = p.category || 'uncategorized'
@@ -763,7 +763,7 @@ export async function getPluginCategories(): Promise<PluginCategory[]> {
  */
 export async function getPluginOnlyCount(): Promise<number> {
   // Count local plugins
-  const localPlugins = getLocalBuildWithClaudePlugins()
+  const localPlugins = await getLocalBuildWithClaudePlugins()
   const localCount = localPlugins.filter(p => p.type === 'plugin').length
 
   // Count database plugins
@@ -788,7 +788,7 @@ export async function getPluginOnlyCount(): Promise<number> {
  */
 export async function getSkillMarketplaces(): Promise<MarketplaceOption[]> {
   // Get local Build with Claude skill count
-  const localPlugins = getLocalBuildWithClaudePlugins()
+  const localPlugins = await getLocalBuildWithClaudePlugins()
   const localSkillCount = localPlugins.filter(p => p.type === 'skill').length
 
   // Count actual skills from the plugins table, joined with marketplaces for display metadata
@@ -888,7 +888,7 @@ export async function getSkillCategories(): Promise<PluginCategory[]> {
   }
 
   // Also include local skill categories
-  const localPlugins = getLocalBuildWithClaudePlugins()
+  const localPlugins = await getLocalBuildWithClaudePlugins()
   const skillsOnly = localPlugins.filter(p => p.type === 'skill')
   for (const p of skillsOnly) {
     const category = p.category || 'uncategorized'
@@ -905,7 +905,7 @@ export async function getSkillCategories(): Promise<PluginCategory[]> {
  */
 export async function getSkillOnlyCount(): Promise<number> {
   // Count local skills
-  const localPlugins = getLocalBuildWithClaudePlugins()
+  const localPlugins = await getLocalBuildWithClaudePlugins()
   const localCount = localPlugins.filter(p => p.type === 'skill').length
 
   // Count database skills

@@ -253,7 +253,7 @@ export async function POST(request: NextRequest) {
 
     // Step 6: Migrate skills from file system
     try {
-      const allSkills = getAllSkills()
+      const allSkills = await getAllSkills()
       for (const skill of allSkills) {
         try {
           await db

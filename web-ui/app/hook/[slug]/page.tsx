@@ -9,7 +9,7 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-  const hooks = getAllHooks()
+  const hooks = await getAllHooks()
   return hooks.map((hook) => ({
     slug: hook.slug,
   }))
@@ -17,7 +17,7 @@ export async function generateStaticParams() {
 
 export default async function HookPage({ params }: PageProps) {
   const { slug } = await params
-  const hook = getHookBySlug(slug)
+  const hook = await getHookBySlug(slug)
 
   if (!hook) {
     notFound()

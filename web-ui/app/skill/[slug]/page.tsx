@@ -11,7 +11,7 @@ interface SkillPageProps {
 
 export async function generateMetadata({ params }: SkillPageProps): Promise<Metadata> {
   const { slug } = await params
-  const skill = getSkillBySlug(slug)
+  const skill = await getSkillBySlug(slug)
 
   if (!skill) {
     return {
@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: SkillPageProps): Promise<Meta
 }
 
 export async function generateStaticParams() {
-  const skills = getAllSkills()
+  const skills = await getAllSkills()
   return skills.map((skill) => ({
     slug: skill.slug,
   }))
@@ -34,7 +34,7 @@ export async function generateStaticParams() {
 
 export default async function SkillPage({ params }: SkillPageProps) {
   const { slug } = await params
-  const skill = getSkillBySlug(slug)
+  const skill = await getSkillBySlug(slug)
 
   if (!skill) {
     notFound()

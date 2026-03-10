@@ -9,7 +9,7 @@ interface PageProps {
 }
 
 export async function generateStaticParams() {
-  const commands = getAllCommands()
+  const commands = await getAllCommands()
   return commands.map((command) => ({
     slug: command.slug,
   }))
@@ -17,7 +17,7 @@ export async function generateStaticParams() {
 
 export default async function CommandPage({ params }: PageProps) {
   const { slug } = await params
-  const command = getCommandBySlug(slug)
+  const command = await getCommandBySlug(slug)
   
   if (!command) {
     notFound()

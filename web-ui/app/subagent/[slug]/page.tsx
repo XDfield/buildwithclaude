@@ -11,7 +11,7 @@ interface SubagentPageProps {
 
 export async function generateMetadata({ params }: SubagentPageProps): Promise<Metadata> {
   const { slug } = await params
-  const subagent = getSubagentBySlug(slug)
+  const subagent = await getSubagentBySlug(slug)
   
   if (!subagent) {
     return {
@@ -26,7 +26,7 @@ export async function generateMetadata({ params }: SubagentPageProps): Promise<M
 }
 
 export async function generateStaticParams() {
-  const subagents = getAllSubagents()
+  const subagents = await getAllSubagents()
   return subagents.map((subagent) => ({
     slug: subagent.slug,
   }))
@@ -34,7 +34,7 @@ export async function generateStaticParams() {
 
 export default async function SubagentPage({ params }: SubagentPageProps) {
   const { slug } = await params
-  const subagent = getSubagentBySlug(slug)
+  const subagent = await getSubagentBySlug(slug)
   
   if (!subagent) {
     notFound()

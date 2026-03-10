@@ -4,8 +4,9 @@ import matter from 'gray-matter'
 import { Hook } from './hooks-types'
 import { CategoryMetadata, generateCategoryMetadata } from './category-utils'
 import { extractScriptFromContent } from './hook-utils'
+import { getSkillItemsByType, getSkillItemBySlug } from './skill-items-db'
 
-export function getAllHooks(): Hook[] {
+function getAllHooksFromFiles(): Hook[] {
   const hooksDirectory = path.join(process.cwd(), '../plugins/all-hooks/hooks')
 
   if (!fs.existsSync(hooksDirectory)) {
@@ -41,7 +42,7 @@ export function getAllHooks(): Hook[] {
   return hooks.sort((a, b) => a.name.localeCompare(b.name))
 }
 
-export function getHookBySlug(slug: string): Hook | null {
+function getHookBySlugFromFiles(slug: string): Hook | null {
   const hooksDirectory = path.join(process.cwd(), '../plugins/all-hooks/hooks')
   const filePath = path.join(hooksDirectory, `${slug}.md`)
 
@@ -67,17 +68,62 @@ export function getHookBySlug(slug: string): Hook | null {
   }
 }
 
-export function getHooksByCategory(category: string): Hook[] {
-  return getAllHooks().filter(hook => hook.category === category)
+export async function getAllHooks(): Promise<Hook[]> {
+  const dbItems = await getSkillItemsByType('hook')
+  if (dbItems.length > 0) {
+    return dbItems.map(item => {
+      const meta = (() => { try { return JSON.parse(item.metadata || '{}') } catch { return {} } })()
+      return {
+        slug: item.slug,
+        name: item.name,
+        description: item.description || '',
+        category: item.category || 'automation',
+        event: meta.event || 'PostToolUse',
+        matcher: meta.matcher || '*',
+        language: meta.language,
+        version: meta.version,
+        content: item.content,
+        script: extractScriptFromContent(item.content) || undefined,
+      } as Hook
+    })
+  }
+  return getAllHooksFromFiles()
 }
 
-export function getHooksByEvent(event: string): Hook[] {
-  return getAllHooks().filter(hook => hook.event === event)
+export async function getHookBySlug(slug: string): Promise<Hook | null> {
+  const dbItem = await getSkillItemBySlug('hook', slug)
+  if (dbItem) {
+    const meta = (() => { try { return JSON.parse(dbItem.metadata || '{}') } catch { return {} } })()
+    return {
+      slug: dbItem.slug,
+      name: dbItem.name,
+      description: dbItem.description || '',
+      category: dbItem.category || 'automation',
+      event: meta.event || 'PostToolUse',
+      matcher: meta.matcher || '*',
+      language: meta.language,
+      version: meta.version,
+      content: dbItem.content,
+      script: extractScriptFromContent(dbItem.content) || undefined,
+    } as Hook
+  }
+  return getHookBySlugFromFiles(slug)
 }
 
-export function searchHooks(query: string): Hook[] {
+export async function getHooksByCategory(category: string): Promise<Hook[]> {
+  const hooks = await getAllHooks()
+  return hooks.filter(hook => hook.category === category)
+}
+
+export async function getHooksByEvent(event: string): Promise<Hook[]> {
+  const hooks = await getAllHooks()
+  return hooks.filter(hook => hook.event === event)
+}
+
+export async function searchHooks(query: string): Promise<Hook[]> {
   const normalizedQuery = query.toLowerCase()
-  return getAllHooks().filter(hook =>
+  const hooks = await getAllHooks()
+  return hooks.filter(hook =>
     hook.name.toLowerCase().includes(normalizedQuery) ||
     hook.description.toLowerCase().includes(normalizedQuery) ||
     hook.event.toLowerCase().includes(normalizedQuery) ||
@@ -85,14 +131,10 @@ export function searchHooks(query: string): Hook[] {
   )
 }
 
-/**
- * Get all unique categories from hooks with counts
- */
-export function getAllHookCategories(): CategoryMetadata[] {
-  const hooks = getAllHooks()
+export async function getAllHookCategories(): Promise<CategoryMetadata[]> {
+  const hooks = await getAllHooks()
   const categoryCounts: Record<string, number> = {}
 
-  // Count hooks per category
   hooks.forEach(hook => {
     const category = hook.category
     categoryCounts[category] = (categoryCounts[category] || 0) + 1
@@ -101,20 +143,14 @@ export function getAllHookCategories(): CategoryMetadata[] {
   return generateCategoryMetadata(categoryCounts)
 }
 
-/**
- * Get all unique event types from hooks
- */
-export function getAllEventTypes(): string[] {
-  const hooks = getAllHooks()
+export async function getAllEventTypes(): Promise<string[]> {
+  const hooks = await getAllHooks()
   const events = new Set(hooks.map(h => h.event))
   return Array.from(events).sort()
 }
 
-/**
- * Get all unique category IDs
- */
-export function getAllHookCategoryIds(): string[] {
-  const hooks = getAllHooks()
+export async function getAllHookCategoryIds(): Promise<string[]> {
+  const hooks = await getAllHooks()
   const categories = new Set(hooks.map(h => h.category))
   return Array.from(categories).sort()
 }
