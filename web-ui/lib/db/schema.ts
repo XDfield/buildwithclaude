@@ -300,3 +300,94 @@ export type MCPServerDB = typeof mcpServers.$inferSelect
 export type NewMCPServerDB = typeof mcpServers.$inferInsert
 export type MCPServerStatsDB = typeof mcpServerStats.$inferSelect
 export type NewMCPServerStatsDB = typeof mcpServerStats.$inferInsert
+
+export const skillRegistries = pgTable('skill_registries', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  sourceType: varchar('source_type', { length: 32 }).notNull().default('internal'),
+  externalUrl: varchar('external_url', { length: 512 }),
+  externalBranch: varchar('external_branch', { length: 128 }).default('main'),
+  syncEnabled: boolean('sync_enabled').default(false),
+  syncInterval: integer('sync_interval').default(3600),
+  lastSyncedAt: timestamp('last_synced_at', { withTimezone: true }),
+  lastSyncSha: varchar('last_sync_sha', { length: 64 }),
+  visibility: varchar('visibility', { length: 32 }).default('org'),
+  orgId: varchar('org_id', { length: 191 }),
+  ownerId: varchar('owner_id', { length: 191 }).notNull(),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_skill_registries_owner').on(table.ownerId),
+  index('idx_skill_registries_org').on(table.orgId),
+  index('idx_skill_registries_source_type').on(table.sourceType),
+])
+
+export const skillItems = pgTable('skill_items', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  registryId: uuid('registry_id').references(() => skillRegistries.id, { onDelete: 'cascade' }),
+  slug: varchar('slug', { length: 255 }).notNull(),
+  itemType: varchar('item_type', { length: 32 }).notNull(),
+  name: varchar('name', { length: 255 }).notNull(),
+  description: text('description'),
+  category: varchar('category', { length: 128 }),
+  version: varchar('version', { length: 64 }).default('1.0.0'),
+  content: text('content').notNull().default(''),
+  metadata: text('metadata').default('{}'),
+  sourcePath: varchar('source_path', { length: 512 }),
+  sourceSha: varchar('source_sha', { length: 64 }),
+  visibility: varchar('visibility', { length: 32 }),
+  installCount: integer('install_count').default(0),
+  status: varchar('status', { length: 32 }).default('active'),
+  createdBy: varchar('created_by', { length: 191 }).notNull().default('system'),
+  updatedBy: varchar('updated_by', { length: 191 }),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_skill_items_registry').on(table.registryId),
+  index('idx_skill_items_type').on(table.itemType),
+  index('idx_skill_items_slug').on(table.slug),
+  index('idx_skill_items_status').on(table.status),
+  index('idx_skill_items_category').on(table.category),
+])
+
+export const skillVersions = pgTable('skill_versions', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  itemId: uuid('item_id').notNull().references(() => skillItems.id, { onDelete: 'cascade' }),
+  version: integer('version').notNull(),
+  content: text('content').notNull(),
+  metadata: text('metadata').default('{}'),
+  commitMsg: varchar('commit_msg', { length: 500 }),
+  createdBy: varchar('created_by', { length: 191 }).notNull().default('system'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_skill_versions_item').on(table.itemId),
+])
+
+export const skillArtifacts = pgTable('skill_artifacts', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  itemId: uuid('item_id').notNull().references(() => skillItems.id, { onDelete: 'cascade' }),
+  filename: varchar('filename', { length: 255 }).notNull(),
+  fileSize: integer('file_size').notNull(),
+  checksumSha256: varchar('checksum_sha256', { length: 64 }).notNull(),
+  mimeType: varchar('mime_type', { length: 128 }),
+  storageBackend: varchar('storage_backend', { length: 32 }).default('local'),
+  storageKey: varchar('storage_key', { length: 512 }).notNull(),
+  artifactVersion: varchar('artifact_version', { length: 64 }).notNull(),
+  isLatest: boolean('is_latest').default(false),
+  downloadCount: integer('download_count').default(0),
+  uploadedBy: varchar('uploaded_by', { length: 191 }).notNull().default('system'),
+  createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+}, (table) => [
+  index('idx_skill_artifacts_item').on(table.itemId),
+  index('idx_skill_artifacts_latest').on(table.isLatest),
+])
+
+export type SkillRegistry = typeof skillRegistries.$inferSelect
+export type NewSkillRegistry = typeof skillRegistries.$inferInsert
+export type SkillItem = typeof skillItems.$inferSelect
+export type NewSkillItem = typeof skillItems.$inferInsert
+export type SkillVersion = typeof skillVersions.$inferSelect
+export type NewSkillVersion = typeof skillVersions.$inferInsert
+export type SkillArtifact = typeof skillArtifacts.$inferSelect
+export type NewSkillArtifact = typeof skillArtifacts.$inferInsert

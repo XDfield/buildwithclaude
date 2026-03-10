@@ -7,6 +7,12 @@ import { getSkillItemsByType, getSkillItemBySlug } from './skill-items-db'
 
 function getAllSubagentsFromFiles(): Subagent[] {
   const subagentsDirectory = path.join(process.cwd(), '../plugins/all-agents/agents')
+
+  if (!fs.existsSync(subagentsDirectory)) {
+    console.warn('Subagents directory not found:', subagentsDirectory)
+    return []
+  }
+
   const fileNames = fs.readdirSync(subagentsDirectory)
   
   const subagents = fileNames

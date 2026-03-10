@@ -7,6 +7,8 @@ import {
   getFeaturedMCPServersFromDB,
   type MCPServerWithParsedJSON,
 } from './mcp-server-db'
+import { getSkillItemsByType } from './skill-items-db'
+import type { SkillItem } from './db/schema'
 
 /**
  * Transform database MCP server to MCPServer type for UI compatibility
@@ -68,6 +70,53 @@ function transformDBToMCPServer(server: MCPServerWithParsedJSON): MCPServer {
     file: `${server.sourceRegistry}/${server.name}.md`,
     path: server.slug,
   }
+}
+
+function transformSkillItemToMCPServer(item: SkillItem): MCPServer {
+  let metadata: Record<string, unknown> = {}
+  try {
+    metadata = JSON.parse(item.metadata || '{}')
+  } catch {}
+
+  return {
+    name: item.slug,
+    display_name: item.name,
+    category: item.category || 'utilities',
+    description: item.description || '',
+    server_type: (metadata.server_type as MCPServer['server_type']) || 'stdio',
+    protocol_version: '1.0.0',
+    verification: {
+      status: 'community',
+      maintainer: item.createdBy,
+      last_tested: item.updatedAt?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
+      tested_with: ['claude-code'],
+    },
+    sources: {
+      github: (metadata.github_url as string) || undefined,
+    },
+    stats: {
+      last_updated: item.updatedAt?.toISOString(),
+    },
+    badges: [],
+    source_registry: {
+      type: 'internal',
+    },
+    tags: (metadata.tags as string[]) || [],
+    installation_methods: (metadata.installation_methods as MCPServer['installation_methods']) || [],
+    user_inputs: [],
+    packages: (metadata.packages as MCPServer['packages']) || [],
+    remotes: (metadata.remotes as MCPServer['remotes']) || [],
+    environment_variables: (metadata.environment_variables as MCPServer['environment_variables']) || [],
+    claude_mcp_add_command: (metadata.claude_mcp_add_command as string) || undefined,
+    docker_mcp_available: false,
+    file: `internal/${item.slug}.md`,
+    path: `internal-${item.slug}`,
+  }
+}
+
+export async function getInternalMCPItems(): Promise<MCPServer[]> {
+  const items = await getSkillItemsByType('mcp', { limit: 10000 })
+  return items.map(transformSkillItemToMCPServer)
 }
 
 export async function getAllMCPServers(): Promise<MCPServer[]> {

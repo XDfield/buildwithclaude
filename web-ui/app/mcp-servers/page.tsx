@@ -1,12 +1,16 @@
 import { Suspense } from 'react'
-import { getAllMCPServers, getAllMCPCategories } from '@/lib/mcp-server'
+import { getAllMCPServers, getAllMCPCategories, getInternalMCPItems } from '@/lib/mcp-server'
 import MCPPageClient from './mcp-client'
 
 export const dynamic = 'force-dynamic'
 
 export default async function MCPServersPage() {
-  const allServers = await getAllMCPServers()
-  const categories = await getAllMCPCategories()
+  const [externalServers, internalServers, categories] = await Promise.all([
+    getAllMCPServers(),
+    getInternalMCPItems(),
+    getAllMCPCategories(),
+  ])
+  const allServers = [...internalServers, ...externalServers]
 
   // Filter servers by badges for featured sections
   const popularServers = allServers.filter(server =>

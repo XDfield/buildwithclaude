@@ -7,6 +7,12 @@ import { getSkillItemsByType, getSkillItemBySlug } from './skill-items-db'
 
 function getAllCommandsFromFiles(): Command[] {
   const commandsDirectory = path.join(process.cwd(), '../plugins/all-commands/commands')
+
+  if (!fs.existsSync(commandsDirectory)) {
+    console.warn('Commands directory not found:', commandsDirectory)
+    return []
+  }
+
   const fileNames = fs.readdirSync(commandsDirectory)
   
   const commands = fileNames

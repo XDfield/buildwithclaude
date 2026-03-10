@@ -3,14 +3,17 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
-import { GitHubLogoIcon, HamburgerMenuIcon, Cross2Icon } from "@radix-ui/react-icons";
+import { GitHubLogoIcon, HamburgerMenuIcon, Cross2Icon, PersonIcon } from "@radix-ui/react-icons";
 import { useState } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
+import { useAuth } from "@/hooks/use-auth";
+import { getLoginUrl } from "@/lib/auth";
 
 export function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
+  const { user, loading, logout } = useAuth();
 
   const navigationLinks = [
     { href: "/plugins", label: "Plugins" },
@@ -62,6 +65,39 @@ export function Navigation() {
               >
                 <HamburgerMenuIcon className="h-4 w-4" />
               </Button>
+              {!loading && (
+                user ? (
+                  <div className="flex items-center gap-2">
+                    <Link
+                      href="/dashboard"
+                      className={cn(
+                        "px-3 py-1.5 text-sm transition-colors rounded-md hidden sm:block",
+                        pathname === '/dashboard'
+                          ? "text-primary bg-primary/10 font-medium"
+                          : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                      )}
+                    >
+                      {user.preferred_username || user.name}
+                    </Link>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 gap-1.5 text-muted-foreground hover:text-foreground"
+                      onClick={logout}
+                    >
+                      <PersonIcon className="h-4 w-4" />
+                      <span className="hidden sm:inline text-sm">Logout</span>
+                    </Button>
+                  </div>
+                ) : (
+                  <a href={getLoginUrl(pathname)}>
+                    <Button variant="ghost" size="sm" className="h-8 gap-1.5 text-muted-foreground hover:text-foreground">
+                      <PersonIcon className="h-4 w-4" />
+                      <span className="hidden sm:inline text-sm">Login</span>
+                    </Button>
+                  </a>
+                )
+              )}
               <a
                 href="https://github.com/davepoon/buildwithclaude"
                 target="_blank"
@@ -71,19 +107,6 @@ export function Navigation() {
                   <GitHubLogoIcon className="h-4 w-4" />
                   <span className="hidden sm:inline text-sm">GitHub</span>
                 </Button>
-              </a>
-              <a
-                href="https://github.com/davepoon/buildwithclaude"
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden sm:block"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src="https://img.shields.io/github/stars/davepoon/buildwithclaude.svg?style=social&label=Star"
-                  alt="GitHub stars"
-                  className="h-5"
-                />
               </a>
             </div>
           </div>
@@ -143,6 +166,15 @@ export function Navigation() {
               </nav>
 
               <div className="border-t border-border p-4 space-y-3">
+                {user && (
+                  <Link
+                    href="/dashboard"
+                    className="block px-3 py-2 text-sm rounded-md text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    Dashboard ({user.preferred_username || user.name})
+                  </Link>
+                )}
                 <a
                   href="https://github.com/davepoon/buildwithclaude"
                   target="_blank"

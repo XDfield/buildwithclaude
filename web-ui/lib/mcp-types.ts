@@ -258,7 +258,7 @@ export function getVerificationBadge(status: VerificationStatus) {
 
 // Source registry metadata
 export interface SourceRegistry {
-  type: 'official-mcp' | 'docker' | 'mcpmarket' | 'manual' | 'community'
+  type: 'official-mcp' | 'docker' | 'mcpmarket' | 'manual' | 'community' | 'internal'
   url?: string
   id?: string
   last_fetched?: string
@@ -319,6 +319,12 @@ export const SOURCE_INDICATORS = {
     label: 'Community',
     color: '#f59e0b',
     description: 'Community Contribution',
+  },
+  internal: {
+    icon: '🏢',
+    label: 'Internal',
+    color: '#6366f1',
+    description: 'Internally Created',
   },
 } as const
 

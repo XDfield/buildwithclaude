@@ -102,6 +102,9 @@ export function MCPCard({ server }: MCPCardProps) {
             {(server.source_registry?.type === 'docker' || server.docker_mcp_available) && (
               <span>{SOURCE_INDICATORS.docker.icon} Docker</span>
             )}
+            {server.source_registry?.type === 'internal' && (
+              <span>{SOURCE_INDICATORS.internal.icon} Internal</span>
+            )}
           </div>
 
           <p className="text-sm text-muted-foreground line-clamp-2 flex-1 mb-3">

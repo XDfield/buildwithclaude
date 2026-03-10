@@ -53,7 +53,7 @@ export default function MCPPageClient({
       setSelectedCategory(categoryParam)
     }
 
-    if (sourceParam && ['official-mcp', 'docker'].includes(sourceParam)) {
+    if (sourceParam && ['official-mcp', 'docker', 'internal'].includes(sourceParam)) {
       setSelectedSource(sourceParam)
     }
 
@@ -115,6 +115,8 @@ export default function MCPPageClient({
         filtered = filtered.filter(server =>
           server.source_registry?.type === 'docker' || server.docker_mcp_available
         )
+      } else if (selectedSource === 'internal') {
+        filtered = filtered.filter(server => server.source_registry?.type === 'internal')
       } else {
         filtered = filtered.filter(server => server.source_registry?.type === selectedSource)
       }
@@ -155,7 +157,8 @@ export default function MCPPageClient({
     const docker = allServers.filter(server =>
       server.source_registry?.type === 'docker' || server.docker_mcp_available
     ).length
-    return { 'official-mcp': officialMcp, docker }
+    const internal = allServers.filter(server => server.source_registry?.type === 'internal').length
+    return { 'official-mcp': officialMcp, docker, internal }
   }, [allServers])
 
   const hasActiveFilters = useMemo(() => {
@@ -273,6 +276,18 @@ export default function MCPPageClient({
             >
               {SOURCE_INDICATORS.docker.icon} Docker ({sourceCounts.docker})
             </button>
+            {sourceCounts.internal > 0 && (
+              <button
+                onClick={() => handleSourceChange('internal')}
+                className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
+                  selectedSource === 'internal'
+                    ? 'bg-muted text-foreground'
+                    : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
+                }`}
+              >
+                {SOURCE_INDICATORS.internal.icon} Internal ({sourceCounts.internal})
+              </button>
+            )}
           </div>
 
           {/* Sort Dropdown */}
