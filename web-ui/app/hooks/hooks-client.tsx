@@ -4,7 +4,9 @@ import { useState, useMemo, useEffect, useRef } from 'react'
 import { useSearchParams, useRouter } from 'next/navigation'
 import { HookCard } from '@/components/hook-card'
 import { Input } from '@/components/ui/input'
-import { Webhook, Loader2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { Webhook, Loader2, Plus } from 'lucide-react'
+import { ItemCrudDialog } from '@/components/item-crud-dialog'
 import { type Hook, type CategoryMetadata, generateCategoryDisplayName } from '@/lib/hooks-types'
 
 const ITEMS_PER_PAGE = 24
@@ -22,6 +24,7 @@ export default function HooksPageClient({ allHooks, categories, eventTypes }: Ho
   const [selectedEvent, setSelectedEvent] = useState<string | 'all'>('all')
   const [searchQuery, setSearchQuery] = useState('')
   const [displayCount, setDisplayCount] = useState(ITEMS_PER_PAGE)
+  const [showCreate, setShowCreate] = useState(false)
   const loadMoreRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -115,14 +118,20 @@ export default function HooksPageClient({ allHooks, categories, eventTypes }: Ho
     <div className="min-h-screen">
       <div className="container mx-auto px-4 py-12">
         {/* Header */}
-        <div className="mb-10">
-          <h1 className="text-display-2 mb-2 flex items-center gap-3">
-            <Webhook className="h-8 w-8 text-orange-500" />
-            Hooks
-          </h1>
-          <p className="text-muted-foreground">
-            {allHooks.length} automation hooks for Claude Code
-          </p>
+        <div className="mb-10 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-display-2 mb-2 flex items-center gap-3">
+              <Webhook className="h-8 w-8 text-orange-500" />
+              Hooks
+            </h1>
+            <p className="text-muted-foreground">
+              {allHooks.length} automation hooks for Claude Code
+            </p>
+          </div>
+          <Button onClick={() => setShowCreate(true)} className="shrink-0">
+            <Plus className="h-4 w-4 mr-1.5" />
+            New Hook
+          </Button>
         </div>
 
         {/* Search */}
@@ -225,6 +234,13 @@ export default function HooksPageClient({ allHooks, categories, eventTypes }: Ho
           )}
         </div>
       </div>
+
+      <ItemCrudDialog
+        open={showCreate}
+        onOpenChange={setShowCreate}
+        itemType="hook"
+        onSaved={() => setShowCreate(false)}
+      />
     </div>
   )
 }

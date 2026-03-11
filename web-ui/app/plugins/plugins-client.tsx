@@ -25,8 +25,9 @@ import {
   CommandList,
 } from '@/components/ui/command'
 import { Badge } from '@/components/ui/badge'
-import { Package, Store, Loader2, ArrowUpDown, Check, ChevronsUpDown, X, Tags } from 'lucide-react'
+import { Package, Store, Loader2, ArrowUpDown, Check, ChevronsUpDown, X, Tags, Plus } from 'lucide-react'
 import { CreateMarketplaceBanner } from '@/components/create-marketplace-banner'
+import { ItemCrudDialog } from '@/components/item-crud-dialog'
 import { cn } from '@/lib/utils'
 import type { UnifiedPlugin } from '@/lib/plugin-types'
 import type { MarketplaceOption, SortOption, PluginCategory } from '@/lib/plugin-db-server'
@@ -59,6 +60,7 @@ export default function PluginsPageClient({
   const [sort, setSort] = useState<SortOption>('relevance')
   const [marketplaceOpen, setMarketplaceOpen] = useState(false)
   const [categoryOpen, setCategoryOpen] = useState(false)
+  const [showCreate, setShowCreate] = useState(false)
 
   // Refs
   const loadMoreRef = useRef<HTMLDivElement>(null)
@@ -213,14 +215,20 @@ export default function PluginsPageClient({
     <div className="min-h-screen">
       <div className="container mx-auto px-4 py-12">
         {/* Header */}
-        <div className="mb-8">
-          <h1 className="text-display-2 mb-2 flex items-center gap-3">
-            <Package className="h-8 w-8 text-primary" />
-            Plugins
-          </h1>
-          <p className="text-muted-foreground">
-            Browse {totalPlugins.toLocaleString()} plugins for development, AI-powered workflows, productivity, and more
-          </p>
+        <div className="mb-8 flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-display-2 mb-2 flex items-center gap-3">
+              <Package className="h-8 w-8 text-primary" />
+              Plugins
+            </h1>
+            <p className="text-muted-foreground">
+              Browse {totalPlugins.toLocaleString()} plugins for development, AI-powered workflows, productivity, and more
+            </p>
+          </div>
+          <Button onClick={() => setShowCreate(true)} className="shrink-0">
+            <Plus className="h-4 w-4 mr-1.5" />
+            New Plugin
+          </Button>
         </div>
 
         {/* Create Marketplace CTA */}
@@ -441,6 +449,13 @@ export default function PluginsPageClient({
           )}
         </div>
       </div>
+
+      <ItemCrudDialog
+        open={showCreate}
+        onOpenChange={setShowCreate}
+        itemType="plugin"
+        onSaved={() => setShowCreate(false)}
+      />
     </div>
   )
 }

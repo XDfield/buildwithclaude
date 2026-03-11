@@ -1,44 +1,28 @@
-import { notFound } from 'next/navigation'
-import { getSubagentBySlug, getAllSubagents } from '@/lib/subagents-server'
-import { Metadata } from 'next'
-import { SubagentPageClient } from './page-client'
+'use client'
 
-interface SubagentPageProps {
-  params: Promise<{
-    slug: string
-  }>
-}
+import { useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { itemApi } from '@/lib/api-client'
+import { Loader2 } from 'lucide-react'
 
-export async function generateMetadata({ params }: SubagentPageProps): Promise<Metadata> {
-  const { slug } = await params
-  const subagent = await getSubagentBySlug(slug)
-  
-  if (!subagent) {
-    return {
-      title: 'Subagent Not Found',
-    }
-  }
-  
-  return {
-    title: `${subagent.name} - Claude Code Subagents`,
-    description: subagent.description,
-  }
-}
+export default function SubagentSlugPage() {
+  const { slug } = useParams<{ slug: string }>()
+  const router = useRouter()
 
-export async function generateStaticParams() {
-  const subagents = await getAllSubagents()
-  return subagents.map((subagent) => ({
-    slug: subagent.slug,
-  }))
-}
+  useEffect(() => {
+    itemApi.list({ type: 'subagent', search: slug, limit: 10 }).then(res => {
+      const match = res.items.find(i => i.slug === slug)
+      if (match) {
+        router.replace(`/items/${match.id}`)
+      } else {
+        router.replace('/subagents')
+      }
+    }).catch(() => router.replace('/subagents'))
+  }, [slug, router])
 
-export default async function SubagentPage({ params }: SubagentPageProps) {
-  const { slug } = await params
-  const subagent = await getSubagentBySlug(slug)
-  
-  if (!subagent) {
-    notFound()
-  }
-  
-  return <SubagentPageClient subagent={subagent} />
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+  )
 }

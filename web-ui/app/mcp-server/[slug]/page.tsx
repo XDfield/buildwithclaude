@@ -1,26 +1,28 @@
-import { notFound } from 'next/navigation'
-import { getMCPServerBySlug, getAllMCPServers } from '@/lib/mcp-server'
-import MCPServerPageClient from './page-client'
+'use client'
 
-export const revalidate = 3600  // 1 hour — individual pages change less often
+import { useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { itemApi } from '@/lib/api-client'
+import { Loader2 } from 'lucide-react'
 
-export async function generateStaticParams() {
-  if (!process.env.POSTGRES_URL) return []
+export default function MCPServerSlugPage() {
+  const { slug } = useParams<{ slug: string }>()
+  const router = useRouter()
 
-  const servers = await getAllMCPServers()
+  useEffect(() => {
+    itemApi.list({ type: 'mcp', search: slug, limit: 10 }).then(res => {
+      const match = res.items.find(i => i.slug === slug)
+      if (match) {
+        router.replace(`/items/${match.id}`)
+      } else {
+        router.replace('/mcp-servers')
+      }
+    }).catch(() => router.replace('/mcp-servers'))
+  }, [slug, router])
 
-  return servers.map((server) => ({
-    slug: server.path.replace(/\//g, '-')
-  }))
-}
-
-export default async function MCPServerPage({ params }: { params: Promise<{ slug: string }> }) {
-  const { slug } = await params
-  const server = await getMCPServerBySlug(slug)
-
-  if (!server) {
-    notFound()
-  }
-
-  return <MCPServerPageClient server={server} />
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+  )
 }

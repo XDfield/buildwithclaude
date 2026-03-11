@@ -1,44 +1,28 @@
-import { notFound } from 'next/navigation'
-import { getSkillBySlug, getAllSkills } from '@/lib/skills-server'
-import { Metadata } from 'next'
-import { SkillPageClient } from './page-client'
+'use client'
 
-interface SkillPageProps {
-  params: Promise<{
-    slug: string
-  }>
-}
+import { useEffect } from 'react'
+import { useParams, useRouter } from 'next/navigation'
+import { itemApi } from '@/lib/api-client'
+import { Loader2 } from 'lucide-react'
 
-export async function generateMetadata({ params }: SkillPageProps): Promise<Metadata> {
-  const { slug } = await params
-  const skill = await getSkillBySlug(slug)
+export default function SkillSlugPage() {
+  const { slug } = useParams<{ slug: string }>()
+  const router = useRouter()
 
-  if (!skill) {
-    return {
-      title: 'Skill Not Found',
-    }
-  }
+  useEffect(() => {
+    itemApi.list({ type: 'skill', search: slug, limit: 10 }).then(res => {
+      const match = res.items.find(i => i.slug === slug)
+      if (match) {
+        router.replace(`/items/${match.id}`)
+      } else {
+        router.replace('/skills')
+      }
+    }).catch(() => router.replace('/skills'))
+  }, [slug, router])
 
-  return {
-    title: `${skill.name} - Claude Code Skills`,
-    description: skill.description,
-  }
-}
-
-export async function generateStaticParams() {
-  const skills = await getAllSkills()
-  return skills.map((skill) => ({
-    slug: skill.slug,
-  }))
-}
-
-export default async function SkillPage({ params }: SkillPageProps) {
-  const { slug } = await params
-  const skill = await getSkillBySlug(slug)
-
-  if (!skill) {
-    notFound()
-  }
-
-  return <SkillPageClient skill={skill} />
+  return (
+    <div className="flex items-center justify-center min-h-screen">
+      <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+    </div>
+  )
 }
