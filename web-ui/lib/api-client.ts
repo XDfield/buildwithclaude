@@ -44,6 +44,29 @@ export interface SkillRegistry {
   updatedAt: string
 }
 
+export interface SkillArtifact {
+  id: string
+  itemId: string
+  version: string
+  filename: string
+  storageKey: string
+  fileSize: number
+  checksum: string
+  isLatest: boolean
+  downloadCount: number
+  uploadedBy: string
+  createdAt: string
+}
+
+export interface SkillVersion {
+  id: string
+  itemId: string
+  version: string
+  commitMsg: string
+  createdBy: string
+  createdAt: string
+}
+
 export interface SkillItem {
   id: string
   registryId: string
@@ -59,6 +82,9 @@ export interface SkillItem {
   createdBy: string
   createdAt: string
   updatedAt: string
+  registry?: SkillRegistry
+  versions?: SkillVersion[]
+  artifacts?: SkillArtifact[]
 }
 
 export const orgApi = {
@@ -104,6 +130,42 @@ export const itemApi = {
       `/api/items/my?ownerId=${encodeURIComponent(ownerId)}${type ? `&type=${type}` : ''}`
     ),
 
+  list: (params?: {
+    type?: string
+    search?: string
+    category?: string
+    registryId?: string
+    limit?: number
+    offset?: number
+    status?: string
+  }) => {
+    const p = new URLSearchParams()
+    if (params?.type) p.set('type', params.type)
+    if (params?.search) p.set('search', params.search)
+    if (params?.category) p.set('category', params.category)
+    if (params?.registryId) p.set('registryId', params.registryId)
+    if (params?.limit) p.set('limit', String(params.limit))
+    if (params?.offset) p.set('offset', String(params.offset))
+    if (params?.status) p.set('status', params.status)
+    return apiFetch<{ items: SkillItem[]; total: number; hasMore: boolean }>(
+      `/api/items?${p.toString()}`
+    )
+  },
+
+  createDirect: (data: {
+    itemType: string
+    name: string
+    description?: string
+    category?: string
+    version?: string
+    content?: string
+    visibility?: string
+    registryId?: string
+    slug?: string
+    createdBy?: string
+  }) =>
+    apiFetch<SkillItem>('/api/items', { method: 'POST', body: JSON.stringify(data) }),
+
   create: (registryId: string, data: {
     slug: string
     itemType: string
@@ -125,4 +187,23 @@ export const itemApi = {
 
   delete: (id: string) =>
     apiFetch<{ message: string }>(`/api/items/${id}`, { method: 'DELETE' }),
+
+  get: (id: string) =>
+    apiFetch<SkillItem>(`/api/items/${id}`),
+}
+
+export const registryApi2 = {
+  getPublic: () =>
+    apiFetch<SkillRegistry>('/api/registries/public'),
+}
+
+export const artifactApi = {
+  list: (itemId: string) =>
+    apiFetch<{ artifacts: SkillArtifact[] }>(`/api/items/${itemId}/artifacts`),
+
+  downloadUrl: (artifactId: string) =>
+    `${API_BASE}/api/artifacts/${artifactId}/download`,
+
+  delete: (artifactId: string) =>
+    apiFetch<{ message: string }>(`/api/artifacts/${artifactId}`, { method: 'DELETE' }),
 }
