@@ -2,9 +2,10 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { Plus, Building2, Package, Trash2 } from 'lucide-react'
+import { Plus, Building2, Package, Trash2, Pencil } from 'lucide-react'
 import { CreateOrgDialog } from '@/components/create-org-dialog'
 import { CreateSkillItemDialog } from '@/components/create-skill-item-dialog'
+import { ItemCrudDialog } from '@/components/item-crud-dialog'
 import { orgApi, registryApi, itemApi, type Organization, type SkillItem, type SkillRegistry } from '@/lib/api-client'
 import type { CasdoorUser } from '@/lib/auth'
 
@@ -36,6 +37,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   const [loadingItems, setLoadingItems] = useState(true)
   const [showCreateOrg, setShowCreateOrg] = useState(false)
   const [showCreateItem, setShowCreateItem] = useState(false)
+  const [editItem, setEditItem] = useState<SkillItem | null>(null)
   const [itemTypeFilter, setItemTypeFilter] = useState('all')
 
   const userId = user.sub
@@ -256,14 +258,24 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                          onClick={() => handleDeleteItem(item.id)}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                        <div className="flex items-center justify-end gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                            onClick={() => setEditItem(item)}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                            onClick={() => handleDeleteItem(item.id)}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </td>
                     </tr>
                   ))}
@@ -294,6 +306,17 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           }}
         />
       )}
+
+      <ItemCrudDialog
+        open={!!editItem}
+        onOpenChange={open => { if (!open) setEditItem(null) }}
+        itemType={editItem?.itemType || 'skill'}
+        editItem={editItem}
+        onSaved={updated => {
+          setItems(prev => prev.map(i => i.id === updated.id ? updated : i))
+          setEditItem(null)
+        }}
+      />
     </div>
   )
 }

@@ -1,0 +1,113 @@
+{
+  "common": {
+    "loading": "加载中...",
+    "noResults": "未找到结果",
+    "back": "返回",
+    "copy": "复制",
+    "copied": "已复制",
+    "download": "下载",
+    "login": "登录",
+    "logout": "退出登录",
+    "dashboard": "控制台",
+    "public": "公开",
+    "visibility": "可见性",
+    "author": "作者",
+    "created": "创建时间",
+    "updated": "更新时间",
+    "type": "类型",
+    "status": "状态",
+    "name": "名称",
+    "org": "组织",
+    "all": "全部"
+  },
+  "nav": {
+    "explore": "探索",
+    "organizations": "组织",
+    "allPublic": "全部（公开）",
+    "noOrgs": "暂无组织",
+    "skillStore": "技能商店",
+    "brand": "CoStrict Cloud"
+  },
+  "skills": {
+    "title": "技能",
+    "subtitle": "个技能",
+    "newSkill": "新建技能",
+    "searchPlaceholder": "搜索技能...",
+    "noResults": "未找到技能",
+    "showingAll": "共显示 {count} 个技能",
+    "backTo": "返回技能列表",
+    "instructions": "技能说明"
+  },
+  "subagents": {
+    "title": "子代理",
+    "subtitle": "个专业 AI 代理",
+    "newSubagent": "新建子代理",
+    "searchPlaceholder": "搜索子代理...",
+    "noResults": "未找到子代理",
+    "showingAll": "共显示 {count} 个子代理",
+    "backTo": "返回子代理列表",
+    "systemPrompt": "系统提示词"
+  },
+  "commands": {
+    "title": "命令",
+    "subtitle": "个斜杠命令",
+    "newCommand": "新建命令",
+    "searchPlaceholder": "搜索命令...",
+    "noResults": "未找到命令",
+    "showingAll": "共显示 {count} 个命令",
+    "backTo": "返回命令列表",
+    "instructions": "命令说明"
+  },
+  "mcp": {
+    "title": "MCP 服务器",
+    "subtitle": "个 Model Context Protocol 服务器",
+    "newMCP": "新建 MCP 服务器",
+    "searchPlaceholder": "搜索 MCP 服务器...",
+    "noResults": "未找到 MCP 服务器",
+    "showingAll": "共显示 {count} 个 MCP 服务器",
+    "backTo": "返回 MCP 服务器列表",
+    "content": "内容"
+  },
+  "itemDetail": {
+    "quickInstall": "快速安装",
+    "copyInstall": "复制安装命令",
+    "details": "详情",
+    "registry": "注册表",
+    "artifacts": "产物",
+    "browseMore": "浏览更多 {type}",
+    "notFound": "未找到该项目",
+    "downloads": "次下载",
+    "latest": "最新版"
+  },
+  "card": {
+    "copyInstall": "复制安装",
+    "copied": "已复制"
+  },
+  "crud": {
+    "createTitle": "新建{type}",
+    "editTitle": "编辑{type}",
+    "ownerPackage": "所有者 / 包名",
+    "ownerPackageRequired": "所有者 / 包名 *",
+    "publicNamespace": "默认公开命名空间 — 所有人可浏览",
+    "personalNamespace": "个人命名空间",
+    "orgNamespace": "组织",
+    "fullIdentifier": "完整标识符：",
+    "displayName": "显示名称",
+    "displayNameRequired": "显示名称 *",
+    "description": "描述",
+    "descriptionPlaceholder": "简短描述（可选）",
+    "category": "分类",
+    "visibility": "可见性",
+    "visibilityPublic": "公开",
+    "visibilityOrg": "组织成员",
+    "visibilityPrivate": "仅自己",
+    "visibilityHint": "由所选命名空间决定",
+    "content": "内容",
+    "cancel": "取消",
+    "saving": "保存中…",
+    "creating": "创建中…",
+    "saveChanges": "保存更改",
+    "create": "创建{type}",
+    "failedToSave": "保存失败"
+  }
+}

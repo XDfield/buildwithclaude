@@ -1,0 +1,113 @@
+{
+  "common": {
+    "loading": "Loading...",
+    "noResults": "No results found",
+    "back": "Back",
+    "copy": "Copy",
+    "copied": "Copied",
+    "download": "Download",
+    "login": "Login",
+    "logout": "Logout",
+    "dashboard": "Dashboard",
+    "public": "Public",
+    "visibility": "Visibility",
+    "author": "Author",
+    "created": "Created",
+    "updated": "Updated",
+    "type": "Type",
+    "status": "Status",
+    "name": "Name",
+    "org": "Org",
+    "all": "All"
+  },
+  "nav": {
+    "explore": "Explore",
+    "organizations": "Organizations",
+    "allPublic": "All (Public)",
+    "noOrgs": "No organizations yet",
+    "skillStore": "Skill Store",
+    "brand": "CoStrict Cloud"
+  },
+  "skills": {
+    "title": "Skills",
+    "subtitle": "skills",
+    "newSkill": "New Skill",
+    "searchPlaceholder": "Search skills...",
+    "noResults": "No skills found",
+    "showingAll": "Showing all {count} skills",
+    "backTo": "Back to Skills",
+    "instructions": "Skill Instructions"
+  },
+  "subagents": {
+    "title": "Subagents",
+    "subtitle": "specialized AI agents",
+    "newSubagent": "New Subagent",
+    "searchPlaceholder": "Search subagents...",
+    "noResults": "No subagents found",
+    "showingAll": "Showing all {count} subagents",
+    "backTo": "Back to Subagents",
+    "systemPrompt": "System Prompt"
+  },
+  "commands": {
+    "title": "Commands",
+    "subtitle": "slash commands",
+    "newCommand": "New Command",
+    "searchPlaceholder": "Search commands...",
+    "noResults": "No commands found",
+    "showingAll": "Showing all {count} commands",
+    "backTo": "Back to Commands",
+    "instructions": "Command Instructions"
+  },
+  "mcp": {
+    "title": "MCP Servers",
+    "subtitle": "Model Context Protocol servers",
+    "newMCP": "New MCP Server",
+    "searchPlaceholder": "Search MCP servers...",
+    "noResults": "No MCP servers found",
+    "showingAll": "Showing all {count} MCP servers",
+    "backTo": "Back to MCP Servers",
+    "content": "Content"
+  },
+  "itemDetail": {
+    "quickInstall": "Quick Install",
+    "copyInstall": "Copy install command",
+    "details": "Details",
+    "registry": "Registry",
+    "artifacts": "Artifacts",
+    "browseMore": "Browse More {type}s",
+    "notFound": "Item not found",
+    "downloads": "downloads",
+    "latest": "latest"
+  },
+  "card": {
+    "copyInstall": "Copy install",
+    "copied": "Copied"
+  },
+  "crud": {
+    "createTitle": "Create a new {type}",
+    "editTitle": "Edit {type}",
+    "ownerPackage": "Owner / Package name",
+    "ownerPackageRequired": "Owner / Package name *",
+    "publicNamespace": "Default public namespace — anyone can browse",
+    "personalNamespace": "Your personal namespace",
+    "orgNamespace": "Organization",
+    "fullIdentifier": "Full identifier:",
+    "displayName": "Display name",
+    "displayNameRequired": "Display name *",
+    "description": "Description",
+    "descriptionPlaceholder": "Brief description (optional)",
+    "category": "Category",
+    "visibility": "Visibility",
+    "visibilityPublic": "Public",
+    "visibilityOrg": "Organization members",
+    "visibilityPrivate": "Only you",
+    "visibilityHint": "Determined by the selected namespace",
+    "content": "Content",
+    "cancel": "Cancel",
+    "saving": "Saving…",
+    "creating": "Creating…",
+    "saveChanges": "Save changes",
+    "create": "Create {type}",
+    "failedToSave": "Failed to save item"
+  }
+}
