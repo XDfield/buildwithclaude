@@ -4,37 +4,107 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { Button } from "@/components/ui/button";
 import { GitHubLogoIcon, HamburgerMenuIcon, Cross2Icon, PersonIcon } from "@radix-ui/react-icons";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { getLoginUrl } from "@/lib/auth";
+import { useOrgFilter } from "@/lib/org-filter-context";
+import { orgApi, type Organization } from "@/lib/api-client";
+import { Building2, ChevronDown, Globe } from "lucide-react";
 
 export function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const { user, loading, logout } = useAuth();
+  const { selectedOrg, setSelectedOrg } = useOrgFilter();
+  const [orgs, setOrgs] = useState<Organization[]>([]);
+  const [orgDropdownOpen, setOrgDropdownOpen] = useState(false);
+  const orgDropdownRef = useRef<HTMLDivElement>(null);
 
   const navigationLinks = [
-    { href: "/plugins", label: "Plugins" },
     { href: "/skills", label: "Skills" },
     { href: "/subagents", label: "Subagents" },
     { href: "/commands", label: "Commands" },
-    { href: "/hooks", label: "Hooks" },
     { href: "/mcp-servers", label: "MCP Servers" },
-    { href: "/marketplaces", label: "Marketplaces" },
-    { href: "/contribute", label: "Contribute" },
   ];
+
+  useEffect(() => {
+    if (user?.sub) {
+      orgApi.listMy(user.sub)
+        .then(res => setOrgs(res.organizations || []))
+        .catch(() => {});
+    }
+  }, [user?.sub]);
+
+  useEffect(() => {
+    function handleClickOutside(e: MouseEvent) {
+      if (orgDropdownRef.current && !orgDropdownRef.current.contains(e.target as Node)) {
+        setOrgDropdownOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   return (
     <>
       <nav className="fixed top-0 w-full z-50 border-b border-border/50 bg-background/95 backdrop-blur-sm">
         <div className="container mx-auto px-4">
           <div className="flex h-14 items-center justify-between">
-            <div className="flex items-center gap-8">
-              <Link href="/" className="font-medium text-foreground hover:text-primary transition-colors">
+            <div className="flex items-center gap-6">
+              <Link href="/" className="font-medium text-foreground hover:text-primary transition-colors shrink-0">
                 Build with Claude
               </Link>
+
+              {/* Org switcher */}
+              {user && (
+                <div className="relative hidden sm:block" ref={orgDropdownRef}>
+                  <button
+                    onClick={() => setOrgDropdownOpen(v => !v)}
+                    className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border/60 bg-muted/30 text-sm hover:bg-muted/60 transition-colors"
+                  >
+                    {selectedOrg ? (
+                      <><Building2 className="h-3.5 w-3.5 text-muted-foreground" /><span className="max-w-[120px] truncate">{selectedOrg.displayName || selectedOrg.name}</span></>
+                    ) : (
+                      <><Globe className="h-3.5 w-3.5 text-muted-foreground" /><span>All</span></>
+                    )}
+                    <ChevronDown className="h-3 w-3 text-muted-foreground" />
+                  </button>
+
+                  {orgDropdownOpen && (
+                    <div className="absolute top-full left-0 mt-1 z-50 min-w-[180px] rounded-md border border-border bg-popover shadow-md py-1">
+                      <button
+                        onClick={() => { setSelectedOrg(null); setOrgDropdownOpen(false); }}
+                        className={cn(
+                          "w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted/50 transition-colors",
+                          !selectedOrg && "bg-muted/30 font-medium"
+                        )}
+                      >
+                        <Globe className="h-3.5 w-3.5 text-muted-foreground" />
+                        All
+                      </button>
+                      {orgs.map(org => (
+                        <button
+                          key={org.id}
+                          onClick={() => { setSelectedOrg(org); setOrgDropdownOpen(false); }}
+                          className={cn(
+                            "w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted/50 transition-colors",
+                            selectedOrg?.id === org.id && "bg-muted/30 font-medium"
+                          )}
+                        >
+                          <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="truncate">{org.displayName || org.name}</span>
+                        </button>
+                      ))}
+                      {orgs.length === 0 && (
+                        <p className="px-3 py-2 text-xs text-muted-foreground">No organizations</p>
+                      )}
+                    </div>
+                  )}
+                </div>
+              )}
+
               <div className="hidden lg:flex items-center gap-1">
                 {navigationLinks.map((link) => {
                   const isActive = pathname === link.href;
@@ -142,6 +212,37 @@ export function Navigation() {
                 </DialogPrimitive.Close>
               </div>
 
+              {/* Mobile org switcher */}
+              {user && (
+                <div className="border-b border-border px-4 py-3">
+                  <p className="text-xs text-muted-foreground mb-2">Organization</p>
+                  <div className="flex flex-wrap gap-1.5">
+                    <button
+                      onClick={() => setSelectedOrg(null)}
+                      className={cn(
+                        "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm transition-colors",
+                        !selectedOrg ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+                      )}
+                    >
+                      <Globe className="h-3.5 w-3.5" /> All
+                    </button>
+                    {orgs.map(org => (
+                      <button
+                        key={org.id}
+                        onClick={() => setSelectedOrg(org)}
+                        className={cn(
+                          "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm transition-colors",
+                          selectedOrg?.id === org.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+                        )}
+                      >
+                        <Building2 className="h-3.5 w-3.5" />
+                        {org.displayName || org.name}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
               <nav className="flex-1 p-4">
                 <div className="space-y-1">
                   {navigationLinks.map((link) => {
@@ -186,20 +287,6 @@ export function Navigation() {
                     View on GitHub
                   </Button>
                 </a>
-                <div className="flex justify-center">
-                  <a
-                    href="https://github.com/davepoon/buildwithclaude"
-                    target="_blank"
-                    rel="noopener noreferrer"
-                  >
-                    {/* eslint-disable-next-line @next/next/no-img-element */}
-                    <img
-                      src="https://img.shields.io/github/stars/davepoon/buildwithclaude.svg?style=social&label=Star"
-                      alt="GitHub stars"
-                      className="h-5"
-                    />
-                  </a>
-                </div>
               </div>
             </div>
           </DialogPrimitive.Content>
