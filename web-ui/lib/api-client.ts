@@ -71,6 +71,8 @@ export interface SyncStatus {
 }
 
 export interface CreateSyncRegistryInput {
+  name?: string
+  description?: string
   externalUrl: string
   externalBranch?: string
   syncInterval?: number
@@ -154,6 +156,36 @@ export interface CapabilityItem {
   artifacts?: CapabilityArtifact[]
 }
 
+export interface OrgRegistryStatus {
+  registryId: string
+  name: string
+  externalUrl: string
+  syncStatus: string
+  lastSyncedAt?: string
+  lastSyncSha: string
+  pendingJobs: number
+}
+
+export const orgRegistryApi = {
+  list: (orgId: string) =>
+    apiFetch<{ registries: CapabilityRegistry[] }>(`/api/organizations/${orgId}/registries`),
+
+  add: (orgId: string, data: CreateSyncRegistryInput) =>
+    apiFetch<CapabilityRegistry>(`/api/organizations/${orgId}/registries`, {
+      method: 'POST',
+      body: JSON.stringify(data),
+    }),
+
+  update: (orgId: string, regId: string, data: Partial<CreateSyncRegistryInput> & { syncEnabled?: boolean }) =>
+    apiFetch<CapabilityRegistry>(`/api/organizations/${orgId}/registries/${regId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data),
+    }),
+
+  remove: (orgId: string, regId: string) =>
+    apiFetch<{ message: string }>(`/api/organizations/${orgId}/registries/${regId}`, { method: 'DELETE' }),
+}
+
 export const orgApi = {
   listMy: (userId: string) =>
     apiFetch<{ organizations: Organization[] }>(`/api/organizations/my?userId=${encodeURIComponent(userId)}`),
@@ -166,8 +198,9 @@ export const orgApi = {
     ownerId: string
     orgType?: 'normal' | 'sync'
     syncRegistry?: CreateSyncRegistryInput
+    syncRegistries?: CreateSyncRegistryInput[]
   }) =>
-    apiFetch<Organization | { organization: Organization; registry: CapabilityRegistry }>(
+    apiFetch<Organization | { organization: Organization; registries: CapabilityRegistry[] }>(
       '/api/organizations',
       { method: 'POST', body: JSON.stringify(data) }
     ),
@@ -189,27 +222,42 @@ export const orgApi = {
 }
 
 export const syncApi = {
-  triggerOrgSync: (orgId: string, dryRun?: boolean) =>
-    apiFetch<{ jobId: string; status: string }>(
-      `/api/organizations/${orgId}/sync${dryRun ? '?dryRun=true' : ''}`,
+  triggerOrgSync: (orgId: string, dryRun?: boolean, registryId?: string) => {
+    const params = new URLSearchParams()
+    if (dryRun) params.set('dryRun', 'true')
+    if (registryId) params.set('registryId', registryId)
+    const qs = params.toString()
+    return apiFetch<{ jobId?: string; status?: string; jobs?: { jobId: string; registryId: string; status: string }[] }>(
+      `/api/organizations/${orgId}/sync${qs ? '?' + qs : ''}`,
       { method: 'POST' }
-    ),
+    )
+  },
 
-  cancelOrgSync: (orgId: string) =>
-    apiFetch<{ message: string }>(`/api/organizations/${orgId}/sync/cancel`, { method: 'POST' }),
+  cancelOrgSync: (orgId: string, registryId?: string) => {
+    const qs = registryId ? `?registryId=${registryId}` : ''
+    return apiFetch<{ message: string }>(`/api/organizations/${orgId}/sync/cancel${qs}`, { method: 'POST' })
+  },
 
-  getOrgSyncStatus: (orgId: string) =>
-    apiFetch<SyncStatus>(`/api/organizations/${orgId}/sync-status`),
+  getOrgSyncStatus: (orgId: string, registryId?: string) => {
+    const qs = registryId ? `?registryId=${registryId}` : ''
+    return apiFetch<SyncStatus | { registries: OrgRegistryStatus[] }>(`/api/organizations/${orgId}/sync-status${qs}`)
+  },
 
-  listOrgSyncLogs: (orgId: string, page = 1, pageSize = 20) =>
-    apiFetch<{ logs: SyncLog[]; total: number }>(
-      `/api/organizations/${orgId}/sync-logs?page=${page}&pageSize=${pageSize}`
-    ),
+  listOrgSyncLogs: (orgId: string, page = 1, pageSize = 20, registryId?: string) => {
+    const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+    if (registryId) params.set('registryId', registryId)
+    return apiFetch<{ logs: SyncLog[]; total: number }>(
+      `/api/organizations/${orgId}/sync-logs?${params.toString()}`
+    )
+  },
 
-  listOrgSyncJobs: (orgId: string, page = 1, pageSize = 20) =>
-    apiFetch<{ jobs: SyncJob[]; total: number }>(
-      `/api/organizations/${orgId}/sync-jobs?page=${page}&pageSize=${pageSize}`
-    ),
+  listOrgSyncJobs: (orgId: string, page = 1, pageSize = 20, registryId?: string) => {
+    const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) })
+    if (registryId) params.set('registryId', registryId)
+    return apiFetch<{ jobs: SyncJob[]; total: number }>(
+      `/api/organizations/${orgId}/sync-jobs?${params.toString()}`
+    )
+  },
 
   triggerRegistrySync: (registryId: string, dryRun?: boolean) =>
     apiFetch<{ jobId: string; status: string }>(

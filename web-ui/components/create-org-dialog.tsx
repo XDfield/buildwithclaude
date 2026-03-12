@@ -39,7 +39,7 @@ export function CreateOrgDialog({ open, onOpenChange, userId, onCreated }: Creat
   const [externalBranch, setExternalBranch] = useState('main')
   const [syncEnabled, setSyncEnabled] = useState(true)
   const [syncInterval, setSyncInterval] = useState(3600)
-  const [includePatterns, setIncludePatterns] = useState('**/*.md\nskills/**/SKILL.md')
+  const [includePatterns, setIncludePatterns] = useState('skills/**/SKILL.md\ncommands/**/*.md\nagents/**/*.md\n.claude-plugin/plugin.json\nhooks/hooks.json\n.mcp.json')
   const [excludePatterns, setExcludePatterns] = useState('node_modules/**')
   const [conflictStrategy, setConflictStrategy] = useState<'keep_remote' | 'keep_local'>('keep_remote')
 
@@ -62,7 +62,7 @@ export function CreateOrgDialog({ open, onOpenChange, userId, onCreated }: Creat
     setExternalBranch('main')
     setSyncEnabled(true)
     setSyncInterval(3600)
-    setIncludePatterns('**/*.md\nskills/**/SKILL.md')
+    setIncludePatterns('skills/**/SKILL.md\ncommands/**/*.md\nagents/**/*.md\n.claude-plugin/plugin.json\nhooks/hooks.json\n.mcp.json')
     setExcludePatterns('node_modules/**')
     setConflictStrategy('keep_remote')
     setError('')
@@ -88,7 +88,7 @@ export function CreateOrgDialog({ open, onOpenChange, userId, onCreated }: Creat
       }
 
       if (orgType === 'sync') {
-        payload.syncRegistry = {
+        payload.syncRegistries = [{
           externalUrl: externalUrl.trim(),
           externalBranch: externalBranch.trim() || 'main',
           syncEnabled,
@@ -96,12 +96,12 @@ export function CreateOrgDialog({ open, onOpenChange, userId, onCreated }: Creat
           includePatterns: includePatterns.split('\n').map(s => s.trim()).filter(Boolean),
           excludePatterns: excludePatterns.split('\n').map(s => s.trim()).filter(Boolean),
           conflictStrategy,
-        }
+        }]
       }
 
       const res = await orgApi.create(payload)
       const org = 'organization' in res ? res.organization : res as Organization
-      onCreated(org)
+      onCreated(org as Organization)
       onOpenChange(false)
       reset()
     } catch (err) {
@@ -233,8 +233,8 @@ export function CreateOrgDialog({ open, onOpenChange, userId, onCreated }: Creat
                 <textarea
                   value={includePatterns}
                   onChange={e => setIncludePatterns(e.target.value)}
-                  className="w-full min-h-[64px] px-3 py-2 text-sm rounded-md border border-input bg-background resize-y font-mono"
-                  placeholder="**/*.md"
+                  className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-background resize-y font-mono"
+                  placeholder={"skills/**/SKILL.md\ncommands/**/*.md\nagents/**/*.md\n.claude-plugin/plugin.json\nhooks/hooks.json\n.mcp.json"}
                 />
                 <p className="text-xs text-muted-foreground">{t('hintIncludePatterns')}</p>
               </div>

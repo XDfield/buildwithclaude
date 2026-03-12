@@ -107,7 +107,7 @@
     "syncEvery6Hours": "每 6 小时",
     "syncEveryDay": "每天",
     "labelIncludePatterns": "包含规则",
-    "hintIncludePatterns": "每行一个 glob 规则",
+    "hintIncludePatterns": "每行一个 glob 规则。默认值遵循 Claude Code Plugin 规范：skills/**/SKILL.md、commands/**/*.md、agents/**/*.md、.claude-plugin/plugin.json、hooks/hooks.json、.mcp.json",
     "labelExcludePatterns": "排除规则",
     "labelConflictStrategy": "冲突策略",
     "conflictKeepRemote": "保留远端 — 始终使用 Git 版本",

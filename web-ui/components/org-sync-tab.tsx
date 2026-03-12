@@ -10,8 +10,17 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { syncApi, registryApi, type SyncStatus, type SyncLog, type CapabilityRegistry } from '@/lib/api-client'
-import { RefreshCw, Play, Square, GitBranch, Clock, CheckCircle2, XCircle, Loader2 } from 'lucide-react'
+import {
+  orgRegistryApi,
+  syncApi,
+  type SyncLog,
+  type CapabilityRegistry,
+  type CreateSyncRegistryInput,
+} from '@/lib/api-client'
+import {
+  RefreshCw, Play, Square, GitBranch, Clock, CheckCircle2,
+  XCircle, Loader2, Plus, Trash2, ChevronDown, ChevronRight,
+} from 'lucide-react'
 
 interface OrgSyncTabProps {
   orgId: string
@@ -22,6 +31,8 @@ const SYNC_INTERVAL_OPTIONS = [
   { label: 'Every 6 hours', value: 21600 },
   { label: 'Every day', value: 86400 },
 ]
+
+const DEFAULT_INCLUDE_PATTERNS = 'skills/**/SKILL.md\ncommands/**/*.md\nagents/**/*.md\n.claude-plugin/plugin.json\nhooks/hooks.json\n.mcp.json'
 
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { cls: string; label: string }> = {
@@ -36,9 +47,7 @@ function StatusBadge({ status }: { status: string }) {
     pending: { cls: 'bg-yellow-500/10 text-yellow-600', label: 'Pending' },
   }
   const s = map[status] ?? { cls: 'bg-muted text-muted-foreground', label: status }
-  return (
-    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.cls}`}>{s.label}</span>
-  )
+  return <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${s.cls}`}>{s.label}</span>
 }
 
 function formatDuration(ms: number) {
@@ -52,76 +61,86 @@ function formatDate(iso?: string) {
   return new Date(iso).toLocaleString()
 }
 
-export function OrgSyncTab({ orgId }: OrgSyncTabProps) {
-  const [status, setStatus] = useState<SyncStatus | null>(null)
+interface RegistryFormState {
+  name: string
+  externalUrl: string
+  externalBranch: string
+  syncEnabled: boolean
+  syncInterval: number
+  includePatterns: string
+  excludePatterns: string
+  conflictStrategy: string
+}
+
+function defaultForm(reg?: CapabilityRegistry): RegistryFormState {
+  const cfg = reg?.syncConfig as Record<string, unknown> | undefined
+  return {
+    name: reg?.name ?? '',
+    externalUrl: reg?.externalUrl ?? '',
+    externalBranch: reg?.externalBranch ?? 'main',
+    syncEnabled: reg?.syncEnabled ?? false,
+    syncInterval: reg?.syncInterval ?? 3600,
+    includePatterns: (cfg?.includePatterns as string[] | undefined)?.join('\n') ?? '',
+    excludePatterns: (cfg?.excludePatterns as string[] | undefined)?.join('\n') ?? '',
+    conflictStrategy: (cfg?.conflictStrategy as string | undefined) ?? 'keep_remote',
+  }
+}
+
+interface RegistryCardProps {
+  orgId: string
+  registry: CapabilityRegistry
+  onRemoved: () => void
+  onUpdated: () => void
+}
+
+function RegistryCard({ orgId, registry, onRemoved, onUpdated }: RegistryCardProps) {
+  const [expanded, setExpanded] = useState(false)
+  const [form, setForm] = useState<RegistryFormState>(() => defaultForm(registry))
   const [logs, setLogs] = useState<SyncLog[]>([])
-  const [registry, setRegistry] = useState<CapabilityRegistry | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [logsLoaded, setLogsLoaded] = useState(false)
   const [syncing, setSyncing] = useState(false)
-  const [savingConfig, setSavingConfig] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [removing, setRemoving] = useState(false)
+  const [syncStatus, setSyncStatus] = useState(registry.syncStatus)
   const [error, setError] = useState('')
   const [successMsg, setSuccessMsg] = useState('')
 
-  const [externalUrl, setExternalUrl] = useState('')
-  const [externalBranch, setExternalBranch] = useState('main')
-  const [syncEnabled, setSyncEnabled] = useState(false)
-  const [syncInterval, setSyncInterval] = useState(3600)
-  const [includePatterns, setIncludePatterns] = useState('')
-  const [excludePatterns, setExcludePatterns] = useState('')
-  const [conflictStrategy, setConflictStrategy] = useState('keep_remote')
-
-  const loadData = useCallback(async () => {
+  const loadLogs = useCallback(async () => {
     try {
-      const [statusRes, logsRes] = await Promise.all([
-        syncApi.getOrgSyncStatus(orgId),
-        syncApi.listOrgSyncLogs(orgId),
-      ])
-      setStatus(statusRes)
-      setLogs(logsRes.logs || [])
+      const res = await syncApi.listOrgSyncLogs(orgId, 1, 10, registry.id)
+      setLogs(res.logs ?? [])
     } catch {}
-  }, [orgId])
-
-  const loadRegistry = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/organizations/${orgId}/registry`)
-      if (res.ok) {
-        const reg: CapabilityRegistry = await res.json()
-        setRegistry(reg)
-        setExternalUrl(reg.externalUrl || '')
-        setExternalBranch(reg.externalBranch || 'main')
-        setSyncEnabled(reg.syncEnabled || false)
-        setSyncInterval(reg.syncInterval || 3600)
-        const cfg = reg.syncConfig as Record<string, unknown> | undefined
-        if (cfg) {
-          const inc = cfg.includePatterns as string[] | undefined
-          const exc = cfg.excludePatterns as string[] | undefined
-          const cs = cfg.conflictStrategy as string | undefined
-          if (inc) setIncludePatterns(inc.join('\n'))
-          if (exc) setExcludePatterns(exc.join('\n'))
-          if (cs) setConflictStrategy(cs)
-        }
-      }
-    } catch {}
-  }, [orgId])
+  }, [orgId, registry.id])
 
   useEffect(() => {
-    setLoading(true)
-    Promise.all([loadData(), loadRegistry()]).finally(() => setLoading(false))
-  }, [loadData, loadRegistry])
+    if (expanded && !logsLoaded) {
+      loadLogs()
+      setLogsLoaded(true)
+    }
+  }, [expanded, logsLoaded, loadLogs])
 
   useEffect(() => {
-    if (status?.syncStatus === 'syncing') {
-      const t = setInterval(loadData, 3000)
+    if (syncStatus === 'syncing') {
+      const t = setInterval(async () => {
+        try {
+          const res = await syncApi.getOrgSyncStatus(orgId, registry.id) as { syncStatus: string }
+          setSyncStatus(res.syncStatus)
+          if (res.syncStatus !== 'syncing') {
+            loadLogs()
+            onUpdated()
+          }
+        } catch {}
+      }, 3000)
       return () => clearInterval(t)
     }
-  }, [status?.syncStatus, loadData])
+  }, [syncStatus, orgId, registry.id, loadLogs, onUpdated])
 
-  const handleTriggerSync = async () => {
+  const handleSync = async () => {
     setSyncing(true)
     setError('')
     try {
-      await syncApi.triggerOrgSync(orgId)
-      await loadData()
+      await syncApi.triggerOrgSync(orgId, false, registry.id)
+      setSyncStatus('syncing')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to trigger sync')
     } finally {
@@ -129,45 +148,298 @@ export function OrgSyncTab({ orgId }: OrgSyncTabProps) {
     }
   }
 
-  const handleCancelSync = async () => {
-    try {
-      await syncApi.cancelOrgSync(orgId)
-      await loadData()
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to cancel sync')
-    }
-  }
-
-  const handleSaveConfig = async () => {
-    if (!registry) return
-    setSavingConfig(true)
+  const handleSave = async () => {
+    setSaving(true)
     setError('')
     setSuccessMsg('')
     try {
-      const syncConfig = {
-        includePatterns: includePatterns.split('\n').map(s => s.trim()).filter(Boolean),
-        excludePatterns: excludePatterns.split('\n').map(s => s.trim()).filter(Boolean),
-        conflictStrategy,
-      }
-      await fetch(`/api/registries/${registry.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          externalUrl,
-          externalBranch,
-          syncEnabled,
-          syncInterval,
-          syncConfig,
-        }),
+      await orgRegistryApi.update(orgId, registry.id, {
+        name: form.name,
+        externalUrl: form.externalUrl,
+        externalBranch: form.externalBranch,
+        syncEnabled: form.syncEnabled,
+        syncInterval: form.syncInterval,
+        includePatterns: form.includePatterns.split('\n').map(s => s.trim()).filter(Boolean),
+        excludePatterns: form.excludePatterns.split('\n').map(s => s.trim()).filter(Boolean),
+        conflictStrategy: form.conflictStrategy,
       })
-      setSuccessMsg('Configuration saved')
+      setSuccessMsg('Saved')
       setTimeout(() => setSuccessMsg(''), 3000)
+      onUpdated()
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to save configuration')
+      setError(err instanceof Error ? err.message : 'Failed to save')
     } finally {
-      setSavingConfig(false)
+      setSaving(false)
     }
   }
+
+  const handleRemove = async () => {
+    if (!confirm(`Remove registry "${registry.name || registry.externalUrl}"?`)) return
+    setRemoving(true)
+    try {
+      await orgRegistryApi.remove(orgId, registry.id)
+      onRemoved()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to remove')
+      setRemoving(false)
+    }
+  }
+
+  const set = (k: keyof RegistryFormState) => (v: string | boolean | number) =>
+    setForm(f => ({ ...f, [k]: v }))
+
+  return (
+    <div className="rounded-lg border border-border bg-card">
+      <div
+        className="flex items-center justify-between px-4 py-3 cursor-pointer select-none"
+        onClick={() => setExpanded(e => !e)}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          {expanded ? <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 shrink-0 text-muted-foreground" />}
+          <GitBranch className="h-4 w-4 shrink-0 text-muted-foreground" />
+          <div className="min-w-0">
+            <div className="text-sm font-medium truncate">{registry.name || registry.externalUrl}</div>
+            {registry.name && <div className="text-xs text-muted-foreground truncate">{registry.externalUrl}</div>}
+          </div>
+        </div>
+        <div className="flex items-center gap-2 shrink-0 ml-2">
+          <StatusBadge status={syncStatus} />
+          <Button
+            variant="ghost" size="sm" className="h-7 w-7 p-0"
+            onClick={e => { e.stopPropagation(); handleSync() }}
+            disabled={syncing || syncStatus === 'syncing'}
+            title="Sync now"
+          >
+            {syncing || syncStatus === 'syncing'
+              ? <Loader2 className="h-3.5 w-3.5 animate-spin" />
+              : <Play className="h-3.5 w-3.5" />}
+          </Button>
+          <Button
+            variant="ghost" size="sm" className="h-7 w-7 p-0 text-destructive hover:text-destructive"
+            onClick={e => { e.stopPropagation(); handleRemove() }}
+            disabled={removing}
+            title="Remove registry"
+          >
+            {removing ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Trash2 className="h-3.5 w-3.5" />}
+          </Button>
+        </div>
+      </div>
+
+      {expanded && (
+        <div className="border-t border-border px-4 py-4 space-y-5">
+          {error && <p className="text-xs text-destructive">{error}</p>}
+
+          <div className="space-y-3">
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Name</label>
+              <Input value={form.name} onChange={e => set('name')(e.target.value)} placeholder="My Plugin Repo" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Git Repository URL</label>
+              <Input value={form.externalUrl} onChange={e => set('externalUrl')(e.target.value)} placeholder="https://github.com/org/repo" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Branch</label>
+              <Input value={form.externalBranch} onChange={e => set('externalBranch')(e.target.value)} placeholder="main" />
+            </div>
+            <div className="flex items-center justify-between">
+              <label className="text-xs text-muted-foreground">Enable Auto Sync</label>
+              <input type="checkbox" checked={form.syncEnabled} onChange={e => set('syncEnabled')(e.target.checked)}
+                className="h-4 w-4 rounded border-input accent-primary cursor-pointer" />
+            </div>
+            {form.syncEnabled && (
+              <div className="space-y-1.5">
+                <label className="text-xs text-muted-foreground">Sync Interval</label>
+                <Select value={String(form.syncInterval)} onValueChange={v => set('syncInterval')(Number(v))}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {SYNC_INTERVAL_OPTIONS.map(opt => (
+                      <SelectItem key={opt.value} value={String(opt.value)}>{opt.label}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Include Patterns</label>
+              <textarea value={form.includePatterns} onChange={e => set('includePatterns')(e.target.value)}
+                className="w-full min-h-[100px] px-3 py-2 text-sm rounded-md border border-input bg-background resize-y font-mono"
+                placeholder={DEFAULT_INCLUDE_PATTERNS} />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Exclude Patterns</label>
+              <textarea value={form.excludePatterns} onChange={e => set('excludePatterns')(e.target.value)}
+                className="w-full min-h-[48px] px-3 py-2 text-sm rounded-md border border-input bg-background resize-y font-mono"
+                placeholder="node_modules/**" />
+            </div>
+            <div className="space-y-1.5">
+              <label className="text-xs text-muted-foreground">Conflict Strategy</label>
+              <Select value={form.conflictStrategy} onValueChange={v => set('conflictStrategy')(v)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="keep_remote">Keep Remote — always use Git version</SelectItem>
+                  <SelectItem value="keep_local">Keep Local — preserve manual edits</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center gap-3 pt-1">
+              <Button size="sm" onClick={handleSave} disabled={saving}>
+                {saving ? 'Saving…' : 'Save'}
+              </Button>
+              {successMsg && <span className="text-xs text-green-600">{successMsg}</span>}
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <h4 className="text-xs font-medium flex items-center gap-1.5 text-muted-foreground">
+                <Clock className="h-3.5 w-3.5" /> Sync History
+              </h4>
+              <Button variant="ghost" size="sm" className="h-6 w-6 p-0" onClick={loadLogs}>
+                <RefreshCw className="h-3 w-3" />
+              </Button>
+            </div>
+            {logs.length === 0 ? (
+              <p className="text-xs text-muted-foreground">No sync history yet</p>
+            ) : (
+              <div className="rounded-md border border-border overflow-hidden">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-border bg-muted/30">
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Time</th>
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Status</th>
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Changes</th>
+                      <th className="text-left px-3 py-2 font-medium text-muted-foreground">Duration</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {logs.map(log => (
+                      <tr key={log.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20">
+                        <td className="px-3 py-2 text-muted-foreground whitespace-nowrap">{formatDate(log.startedAt)}</td>
+                        <td className="px-3 py-2">
+                          <div className="flex items-center gap-1">
+                            {log.status === 'success' && <CheckCircle2 className="h-3 w-3 text-green-500" />}
+                            {log.status === 'failed' && <XCircle className="h-3 w-3 text-destructive" />}
+                            {log.status === 'running' && <Loader2 className="h-3 w-3 text-blue-500 animate-spin" />}
+                            <StatusBadge status={log.status} />
+                          </div>
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {log.status === 'success' || log.status === 'failed'
+                            ? `+${log.addedItems} ~${log.updatedItems} -${log.deletedItems} =${log.skippedItems}`
+                            : '—'}
+                        </td>
+                        <td className="px-3 py-2 text-muted-foreground">
+                          {log.durationMs ? formatDuration(log.durationMs) : '—'}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+function AddRegistryForm({ orgId, onAdded }: { orgId: string; onAdded: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [form, setForm] = useState<RegistryFormState>(() => defaultForm())
+  const [saving, setSaving] = useState(false)
+  const [error, setError] = useState('')
+
+  const set = (k: keyof RegistryFormState) => (v: string | boolean | number) =>
+    setForm(f => ({ ...f, [k]: v }))
+
+  const handleAdd = async () => {
+    if (!form.externalUrl.trim()) { setError('Git URL is required'); return }
+    setSaving(true)
+    setError('')
+    try {
+      const payload: CreateSyncRegistryInput = {
+        name: form.name,
+        externalUrl: form.externalUrl.trim(),
+        externalBranch: form.externalBranch || 'main',
+        syncEnabled: form.syncEnabled,
+        syncInterval: form.syncInterval,
+        includePatterns: form.includePatterns.split('\n').map(s => s.trim()).filter(Boolean),
+        excludePatterns: form.excludePatterns.split('\n').map(s => s.trim()).filter(Boolean),
+        conflictStrategy: form.conflictStrategy,
+      }
+      await orgRegistryApi.add(orgId, payload)
+      setForm(defaultForm())
+      setOpen(false)
+      onAdded()
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to add registry')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (!open) {
+    return (
+      <Button variant="outline" size="sm" onClick={() => setOpen(true)} className="w-full">
+        <Plus className="h-3.5 w-3.5 mr-1.5" /> Add Git Repository
+      </Button>
+    )
+  }
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4 space-y-3">
+      <h4 className="text-sm font-medium">Add Git Repository</h4>
+      {error && <p className="text-xs text-destructive">{error}</p>}
+      <div className="space-y-1.5">
+        <label className="text-xs text-muted-foreground">Name</label>
+        <Input value={form.name} onChange={e => set('name')(e.target.value)} placeholder="My Plugin Repo" />
+      </div>
+      <div className="space-y-1.5">
+        <label className="text-xs text-muted-foreground">Git Repository URL <span className="text-destructive">*</span></label>
+        <Input value={form.externalUrl} onChange={e => set('externalUrl')(e.target.value)} placeholder="https://github.com/org/repo" />
+      </div>
+      <div className="space-y-1.5">
+        <label className="text-xs text-muted-foreground">Branch</label>
+        <Input value={form.externalBranch} onChange={e => set('externalBranch')(e.target.value)} placeholder="main" />
+      </div>
+      <div className="flex items-center justify-between">
+        <label className="text-xs text-muted-foreground">Enable Auto Sync</label>
+        <input type="checkbox" checked={form.syncEnabled} onChange={e => set('syncEnabled')(e.target.checked)}
+          className="h-4 w-4 rounded border-input accent-primary cursor-pointer" />
+      </div>
+      <div className="space-y-1.5">
+        <label className="text-xs text-muted-foreground">Include Patterns</label>
+        <textarea value={form.includePatterns} onChange={e => set('includePatterns')(e.target.value)}
+          className="w-full min-h-[80px] px-3 py-2 text-sm rounded-md border border-input bg-background resize-y font-mono"
+          placeholder={DEFAULT_INCLUDE_PATTERNS} />
+      </div>
+      <div className="flex gap-2 pt-1">
+        <Button size="sm" onClick={handleAdd} disabled={saving}>
+          {saving ? 'Adding…' : 'Add'}
+        </Button>
+        <Button size="sm" variant="ghost" onClick={() => { setOpen(false); setError('') }}>Cancel</Button>
+      </div>
+    </div>
+  )
+}
+
+export function OrgSyncTab({ orgId }: OrgSyncTabProps) {
+  const [registries, setRegistries] = useState<CapabilityRegistry[]>([])
+  const [loading, setLoading] = useState(true)
+
+  const loadRegistries = useCallback(async () => {
+    try {
+      const res = await orgRegistryApi.list(orgId)
+      setRegistries(res.registries ?? [])
+    } catch {}
+  }, [orgId])
+
+  useEffect(() => {
+    setLoading(true)
+    loadRegistries().finally(() => setLoading(false))
+  }, [loadRegistries])
 
   if (loading) {
     return (
@@ -179,187 +451,20 @@ export function OrgSyncTab({ orgId }: OrgSyncTabProps) {
   }
 
   return (
-    <div className="space-y-6">
-      {/* Status Card */}
-      <div className="p-4 rounded-lg border border-border bg-card space-y-3">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-medium flex items-center gap-2">
-            <GitBranch className="h-4 w-4 text-muted-foreground" />
-            Sync Status
-          </h3>
-          <div className="flex items-center gap-2">
-            {status && <StatusBadge status={status.syncStatus} />}
-            <Button variant="ghost" size="sm" className="h-7 w-7 p-0" onClick={loadData}>
-              <RefreshCw className="h-3.5 w-3.5" />
-            </Button>
-          </div>
-        </div>
-        <div className="grid grid-cols-2 gap-3 text-sm">
-          <div>
-            <div className="text-xs text-muted-foreground mb-0.5">Last Synced</div>
-            <div>{formatDate(status?.lastSyncedAt)}</div>
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground mb-0.5">Last Commit SHA</div>
-            <div className="font-mono text-xs">{status?.lastSyncSha?.slice(0, 8) || '—'}</div>
-          </div>
-          <div>
-            <div className="text-xs text-muted-foreground mb-0.5">Pending Jobs</div>
-            <div>{status?.pendingJobs ?? 0}</div>
-          </div>
-        </div>
-        <div className="flex gap-2 pt-1">
-          <Button
-            size="sm"
-            onClick={handleTriggerSync}
-            disabled={syncing || status?.syncStatus === 'syncing'}
-          >
-            {syncing || status?.syncStatus === 'syncing' ? (
-              <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" />
-            ) : (
-              <Play className="h-3.5 w-3.5 mr-1.5" />
-            )}
-            Sync Now
-          </Button>
-          {(status?.pendingJobs ?? 0) > 0 && (
-            <Button variant="outline" size="sm" onClick={handleCancelSync}>
-              <Square className="h-3.5 w-3.5 mr-1.5" />
-              Cancel
-            </Button>
-          )}
-        </div>
-        {error && <p className="text-xs text-destructive">{error}</p>}
-      </div>
-
-      {/* Configuration */}
-      <div className="space-y-4">
-        <h3 className="text-sm font-medium">Sync Configuration</h3>
-        <div className="space-y-3">
-          <div className="space-y-1.5">
-            <label className="text-sm text-muted-foreground">Git Repository URL</label>
-            <Input value={externalUrl} onChange={e => setExternalUrl(e.target.value)} placeholder="https://github.com/org/repo" />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm text-muted-foreground">Branch</label>
-            <Input value={externalBranch} onChange={e => setExternalBranch(e.target.value)} placeholder="main" />
-          </div>
-          <div className="flex items-center justify-between">
-            <label className="text-sm text-muted-foreground">Enable Auto Sync</label>
-            <input
-              type="checkbox"
-              checked={syncEnabled}
-              onChange={e => setSyncEnabled(e.target.checked)}
-              className="h-4 w-4 rounded border-input accent-primary cursor-pointer"
-            />
-          </div>
-          {syncEnabled && (
-            <div className="space-y-1.5">
-              <label className="text-sm text-muted-foreground">Sync Interval</label>
-              <Select value={String(syncInterval)} onValueChange={v => setSyncInterval(Number(v))}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {SYNC_INTERVAL_OPTIONS.map(opt => (
-                    <SelectItem key={opt.value} value={String(opt.value)}>{opt.label}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-          )}
-          <div className="space-y-1.5">
-            <label className="text-sm text-muted-foreground">Include Patterns</label>
-            <textarea
-              value={includePatterns}
-              onChange={e => setIncludePatterns(e.target.value)}
-              className="w-full min-h-[64px] px-3 py-2 text-sm rounded-md border border-input bg-background resize-y font-mono"
-              placeholder="**/*.md"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm text-muted-foreground">Exclude Patterns</label>
-            <textarea
-              value={excludePatterns}
-              onChange={e => setExcludePatterns(e.target.value)}
-              className="w-full min-h-[48px] px-3 py-2 text-sm rounded-md border border-input bg-background resize-y font-mono"
-              placeholder="node_modules/**"
-            />
-          </div>
-          <div className="space-y-1.5">
-            <label className="text-sm text-muted-foreground">Conflict Strategy</label>
-            <Select value={conflictStrategy} onValueChange={setConflictStrategy}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="keep_remote">Keep Remote — always use Git version</SelectItem>
-                <SelectItem value="keep_local">Keep Local — preserve manual edits</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <Button size="sm" onClick={handleSaveConfig} disabled={savingConfig}>
-            {savingConfig ? 'Saving…' : 'Save Configuration'}
-          </Button>
-          {successMsg && <span className="text-xs text-green-600">{successMsg}</span>}
-        </div>
-      </div>
-
-      {/* Sync Logs */}
-      <div className="space-y-3">
-        <h3 className="text-sm font-medium flex items-center gap-2">
-          <Clock className="h-4 w-4 text-muted-foreground" />
-          Sync History
-        </h3>
-        {logs.length === 0 ? (
-          <p className="text-sm text-muted-foreground">No sync history yet</p>
-        ) : (
-          <div className="rounded-lg border border-border overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b border-border bg-muted/30">
-                  <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Time</th>
-                  <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Trigger</th>
-                  <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Status</th>
-                  <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Changes</th>
-                  <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Duration</th>
-                </tr>
-              </thead>
-              <tbody>
-                {logs.map(log => (
-                  <tr key={log.id} className="border-b border-border/50 last:border-0 hover:bg-muted/20 transition-colors">
-                    <td className="px-4 py-3 text-xs text-muted-foreground whitespace-nowrap">
-                      {formatDate(log.startedAt)}
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className="text-xs capitalize">{log.triggerType}</span>
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5">
-                        {log.status === 'success' && <CheckCircle2 className="h-3.5 w-3.5 text-green-500" />}
-                        {log.status === 'failed' && <XCircle className="h-3.5 w-3.5 text-destructive" />}
-                        {log.status === 'running' && <Loader2 className="h-3.5 w-3.5 text-blue-500 animate-spin" />}
-                        <StatusBadge status={log.status} />
-                      </div>
-                    </td>
-                    <td className="px-4 py-3 text-xs">
-                      {log.status === 'success' || log.status === 'failed' ? (
-                        <span className="text-muted-foreground">
-                          +{log.addedItems} ~{log.updatedItems} -{log.deletedItems} ={log.skippedItems}
-                        </span>
-                      ) : '—'}
-                    </td>
-                    <td className="px-4 py-3 text-xs text-muted-foreground">
-                      {log.durationMs ? formatDuration(log.durationMs) : '—'}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
+    <div className="space-y-3">
+      {registries.length === 0 && (
+        <p className="text-sm text-muted-foreground py-2">No Git repositories bound yet.</p>
+      )}
+      {registries.map(reg => (
+        <RegistryCard
+          key={reg.id}
+          orgId={orgId}
+          registry={reg}
+          onRemoved={loadRegistries}
+          onUpdated={loadRegistries}
+        />
+      ))}
+      <AddRegistryForm orgId={orgId} onAdded={loadRegistries} />
     </div>
   )
 }

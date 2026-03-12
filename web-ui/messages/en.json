@@ -107,7 +107,7 @@
     "syncEvery6Hours": "Every 6 hours",
     "syncEveryDay": "Every day",
     "labelIncludePatterns": "Include Patterns",
-    "hintIncludePatterns": "One glob pattern per line",
+    "hintIncludePatterns": "One glob pattern per line. Defaults follow the Claude Code Plugin spec: skills/**/SKILL.md, commands/**/*.md, agents/**/*.md, .claude-plugin/plugin.json, hooks/hooks.json, .mcp.json",
     "labelExcludePatterns": "Exclude Patterns",
     "labelConflictStrategy": "Conflict Strategy",
     "conflictKeepRemote": "Keep Remote — always use Git version",
