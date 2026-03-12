@@ -3,11 +3,11 @@
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
 import { Plus, Building2, Package, Trash2, Pencil, GitBranch, ChevronDown, ChevronUp } from 'lucide-react'
-import { CreateOrgDialog } from '@/components/create-org-dialog'
+import { CreateRepoDialog } from '@/components/create-repo-dialog'
 import { CreateCapabilityItemDialog } from '@/components/create-capability-item-dialog'
 import { ItemCrudDialog } from '@/components/item-crud-dialog'
-import { OrgSyncTab } from '@/components/org-sync-tab'
-import { orgApi, registryApi, itemApi, type Organization, type CapabilityItem, type CapabilityRegistry } from '@/lib/api-client'
+import { RepoSyncTab } from '@/components/repo-sync-tab'
+import { repoApi, registryApi, itemApi, type Repository, type CapabilityItem, type CapabilityRegistry } from '@/lib/api-client'
 import type { CasdoorUser } from '@/lib/auth'
 import { useTranslations } from 'next-intl'
 
@@ -27,27 +27,27 @@ interface DashboardClientProps {
 export default function DashboardClient({ user, loginUrl }: DashboardClientProps) {
   const t = useTranslations('dashboard')
 
-  const [orgs, setOrgs] = useState<Organization[]>([])
+  const [repos, setRepos] = useState<Repository[]>([])
   const [items, setItems] = useState<CapabilityItem[]>([])
   const [personalRegistry, setPersonalRegistry] = useState<CapabilityRegistry | null>(null)
-  const [loadingOrgs, setLoadingOrgs] = useState(true)
+  const [loadingRepos, setLoadingRepos] = useState(true)
   const [loadingItems, setLoadingItems] = useState(true)
-  const [showCreateOrg, setShowCreateOrg] = useState(false)
+  const [showCreateRepo, setShowCreateRepo] = useState(false)
   const [showCreateItem, setShowCreateItem] = useState(false)
   const [editItem, setEditItem] = useState<CapabilityItem | null>(null)
   const [itemTypeFilter, setItemTypeFilter] = useState('all')
-  const [expandedSyncOrg, setExpandedSyncOrg] = useState<string | null>(null)
+  const [expandedSyncRepo, setExpandedSyncRepo] = useState<string | null>(null)
 
   const userId = user?.sub ?? ''
 
-  const loadOrgs = useCallback(async () => {
+  const loadRepos = useCallback(async () => {
     if (!userId) return
-    setLoadingOrgs(true)
+    setLoadingRepos(true)
     try {
-      const res = await orgApi.listMy(userId)
-      setOrgs(res.organizations || [])
+      const res = await repoApi.listMy(userId)
+      setRepos(res.repositories || [])
     } catch {}
-    setLoadingOrgs(false)
+    setLoadingRepos(false)
   }, [userId])
 
   const loadItems = useCallback(async () => {
@@ -70,10 +70,10 @@ export default function DashboardClient({ user, loginUrl }: DashboardClientProps
 
   useEffect(() => {
     if (!user) return
-    loadOrgs()
+    loadRepos()
     loadItems()
     ensureRegistry()
-  }, [user, loadOrgs, loadItems, ensureRegistry])
+  }, [user, loadRepos, loadItems, ensureRegistry])
 
   if (!user) {
     return (
@@ -96,11 +96,11 @@ export default function DashboardClient({ user, loginUrl }: DashboardClientProps
     } catch {}
   }
 
-  const handleDeleteOrg = async (id: string) => {
-    if (!confirm(t('deleteOrgConfirm'))) return
+  const handleDeleteRepo = async (id: string) => {
+    if (!confirm(t('deleteRepoConfirm'))) return
     try {
-      await orgApi.delete(id)
-      setOrgs(prev => prev.filter(o => o.id !== id))
+      await repoApi.delete(id)
+      setRepos(prev => prev.filter(o => o.id !== id))
     } catch {}
   }
 
@@ -135,63 +135,63 @@ export default function DashboardClient({ user, loginUrl }: DashboardClientProps
           </Button>
         </div>
 
-        {/* Organizations */}
+        {/* Repositories */}
         <section className="mb-12">
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-medium flex items-center gap-2">
               <Building2 className="h-5 w-5 text-muted-foreground" />
-              {t('organizations')}
+              {t('repositories')}
             </h2>
-            <Button variant="outline" size="sm" onClick={() => setShowCreateOrg(true)}>
+            <Button variant="outline" size="sm" onClick={() => setShowCreateRepo(true)}>
               <Plus className="h-3.5 w-3.5 mr-1" />
               {t('new')}
             </Button>
           </div>
 
-          {loadingOrgs ? (
-            <div className="text-sm text-muted-foreground">{t('loadingOrgs')}</div>
-          ) : orgs.length === 0 ? (
+          {loadingRepos ? (
+            <div className="text-sm text-muted-foreground">{t('loadingRepos')}</div>
+          ) : repos.length === 0 ? (
             <div className="border border-dashed border-border rounded-lg p-8 text-center">
               <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground mb-3">{t('noOrgsYet')}</p>
-              <Button variant="outline" size="sm" onClick={() => setShowCreateOrg(true)}>
+              <p className="text-sm text-muted-foreground mb-3">{t('noReposYet')}</p>
+              <Button variant="outline" size="sm" onClick={() => setShowCreateRepo(true)}>
                 <Plus className="h-3.5 w-3.5 mr-1" />
-                {t('createOrganization')}
+                {t('createRepository')}
               </Button>
             </div>
           ) : (
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {orgs.map(org => (
-                <div key={org.id} className="p-4 rounded-lg border border-border bg-card flex flex-col gap-2">
+              {repos.map(repo => (
+                <div key={repo.id} className="p-4 rounded-lg border border-border bg-card flex flex-col gap-2">
                   <div className="flex items-start justify-between">
                     <div>
-                      <div className="font-medium">{org.displayName || org.name}</div>
-                      <div className="text-xs text-muted-foreground">{org.name}</div>
+                      <div className="font-medium">{repo.displayName || repo.name}</div>
+                      <div className="text-xs text-muted-foreground">{repo.name}</div>
                     </div>
                     <div className="flex items-center gap-1">
                       <span className={`text-xs px-2 py-0.5 rounded-full ${
-                        org.visibility === 'public'
+                        repo.visibility === 'public'
                           ? 'bg-green-500/10 text-green-500'
                           : 'bg-muted text-muted-foreground'
                       }`}>
-                        {org.visibility === 'public' ? t('visibilityPublic') : org.visibility}
+                        {repo.visibility === 'public' ? t('visibilityPublic') : repo.visibility}
                       </span>
                     </div>
                   </div>
-                  {org.description && (
-                    <p className="text-xs text-muted-foreground line-clamp-2">{org.description}</p>
+                  {repo.description && (
+                    <p className="text-xs text-muted-foreground line-clamp-2">{repo.description}</p>
                   )}
                   <div className="flex items-center gap-1 mt-auto pt-1">
-                    {org.orgType === 'sync' && (
+                    {repo.repoType === 'sync' && (
                       <Button
                         variant="ghost"
                         size="sm"
                         className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
-                        onClick={() => setExpandedSyncOrg(expandedSyncOrg === org.id ? null : org.id)}
+                        onClick={() => setExpandedSyncRepo(expandedSyncRepo === repo.id ? null : repo.id)}
                       >
                         <GitBranch className="h-3 w-3 mr-1" />
                         {t('sync')}
-                        {expandedSyncOrg === org.id
+                        {expandedSyncRepo === repo.id
                           ? <ChevronUp className="h-3 w-3 ml-1" />
                           : <ChevronDown className="h-3 w-3 ml-1" />
                         }
@@ -201,14 +201,14 @@ export default function DashboardClient({ user, loginUrl }: DashboardClientProps
                       variant="ghost"
                       size="sm"
                       className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground ml-auto"
-                      onClick={() => handleDeleteOrg(org.id)}
+                      onClick={() => handleDeleteRepo(repo.id)}
                     >
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
-                  {org.orgType === 'sync' && expandedSyncOrg === org.id && (
+                  {repo.repoType === 'sync' && expandedSyncRepo === repo.id && (
                     <div className="mt-3 pt-3 border-t border-border">
-                      <OrgSyncTab orgId={org.id} />
+                      <RepoSyncTab repoId={repo.id} />
                     </div>
                   )}
                 </div>
@@ -300,7 +300,7 @@ export default function DashboardClient({ user, loginUrl }: DashboardClientProps
                             ? 'bg-green-500/10 text-green-500'
                             : 'bg-muted text-muted-foreground'
                         }`}>
-                          {item.visibility === 'public' ? t('visibilityPublic') : t('visibilityOrg')}
+                          {item.visibility === 'public' ? t('visibilityPublic') : t('visibilityRepo')}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -332,11 +332,11 @@ export default function DashboardClient({ user, loginUrl }: DashboardClientProps
         </section>
       </div>
 
-      <CreateOrgDialog
-        open={showCreateOrg}
-        onOpenChange={setShowCreateOrg}
+      <CreateRepoDialog
+        open={showCreateRepo}
+        onOpenChange={setShowCreateRepo}
         userId={userId}
-        onCreated={org => setOrgs(prev => [org, ...prev])}
+        onCreated={repo => setRepos(prev => [repo, ...prev])}
       />
 
       {personalRegistry && (
@@ -345,7 +345,7 @@ export default function DashboardClient({ user, loginUrl }: DashboardClientProps
           onOpenChange={setShowCreateItem}
           registryId={personalRegistry.id}
           userId={userId}
-          organizations={orgs}
+          repositories={repos}
           onCreated={(item: CapabilityItem) => {
             setItems(prev => [item, ...prev])
             loadItems()

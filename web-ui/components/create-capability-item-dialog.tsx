@@ -16,7 +16,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { itemApi, type CapabilityItem, type Organization } from '@/lib/api-client'
+import { itemApi, type CapabilityItem, type Repository } from '@/lib/api-client'
 import { useTranslations } from 'next-intl'
 
 const CATEGORIES = [
@@ -34,7 +34,7 @@ interface CreateCapabilityItemDialogProps {
   onOpenChange: (open: boolean) => void
   registryId: string
   userId: string
-  organizations: Organization[]
+  repositories: Repository[]
   onCreated: (item: CapabilityItem) => void
 }
 
@@ -43,7 +43,7 @@ export function CreateCapabilityItemDialog({
   onOpenChange,
   registryId,
   userId,
-  organizations,
+  repositories,
   onCreated,
 }: CreateCapabilityItemDialogProps) {
   const t = useTranslations('createCapabilityItem')
@@ -214,17 +214,17 @@ export function CreateCapabilityItemDialog({
             </Select>
           </div>
 
-          {visibility === 'org' && organizations.length > 0 && (
+          {visibility === 'org' && repositories.length > 0 && (
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">{t('labelOrganization')}</label>
+              <label className="text-sm font-medium">{t('labelRepository')}</label>
               <Select value={orgId} onValueChange={setOrgId}>
                 <SelectTrigger>
-                  <SelectValue placeholder={t('placeholderOrganization')} />
+                  <SelectValue placeholder={t('placeholderRepository')} />
                 </SelectTrigger>
                 <SelectContent>
-                  {organizations.map(org => (
-                    <SelectItem key={org.id} value={org.id}>
-                      {org.displayName || org.name}
+                  {repositories.map(repo => (
+                    <SelectItem key={repo.id} value={repo.id}>
+                      {repo.displayName || repo.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

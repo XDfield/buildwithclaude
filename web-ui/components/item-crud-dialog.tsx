@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ChevronDown, Globe, Lock, Building2, User, Users } from 'lucide-react'
-import { itemApi, orgApi, registryApi, registryApi2, type CapabilityItem, type Organization, type CapabilityRegistry } from '@/lib/api-client'
+import { itemApi, repoApi, registryApi, registryApi2, type CapabilityItem, type Repository, type CapabilityRegistry } from '@/lib/api-client'
 import { useAuth } from '@/hooks/use-auth'
 import { useTranslations } from 'next-intl'
 
@@ -78,8 +78,8 @@ export function ItemCrudDialog({
   const username = user?.preferred_username || user?.name
   const t = useTranslations('crud')
 
-  const [orgs, setOrgs] = useState<Organization[]>([])
-  const [orgRegistries, setOrgRegistries] = useState<Record<string, CapabilityRegistry>>({})
+  const [repos, setRepos] = useState<Repository[]>([])
+  const [repoRegistries, setRepoRegistries] = useState<Record<string, CapabilityRegistry>>({})
   const [personalRegistry, setPersonalRegistry] = useState<CapabilityRegistry | null>(null)
   const [publicRegistry, setPublicRegistry] = useState<CapabilityRegistry | null>(null)
 
@@ -101,22 +101,22 @@ export function ItemCrudDialog({
     registryApi2.getPublic().then(r => setPublicRegistry(r)).catch(() => {})
     if (userId && username) {
       registryApi.ensurePersonal(userId, username).then(r => setPersonalRegistry(r)).catch(() => {})
-      orgApi.listMy(userId).then(res => setOrgs(res.organizations || [])).catch(() => {})
+      repoApi.listMy(userId).then(res => setRepos(res.repositories || [])).catch(() => {})
     }
   }, [open, userId, username])
 
   useEffect(() => {
-    if (!open || orgs.length === 0) return
+    if (!open || repos.length === 0) return
     const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
-    for (const org of orgs) {
-      if (!orgRegistries[org.id]) {
-        fetch(`${API_BASE}/api/organizations/${org.id}/registry`)
+    for (const repo of repos) {
+      if (!repoRegistries[repo.id]) {
+        fetch(`${API_BASE}/api/repositories/${repo.id}/registry`)
           .then(r => r.ok ? r.json() : null)
-          .then(data => { if (data) setOrgRegistries(prev => ({ ...prev, [org.id]: data })) })
+          .then((data: CapabilityRegistry | null) => { if (data) setRepoRegistries(prev => ({ ...prev, [repo.id]: data })) })
           .catch(() => {})
       }
     }
-  }, [open, orgs])
+  }, [open, repos])
 
   useEffect(() => {
     if (editItem) {
@@ -157,18 +157,18 @@ export function ItemCrudDialog({
         visibility: 'private',
       })
     }
-    for (const org of orgs) {
+    for (const repo of repos) {
       opts.push({
-        value: `@${org.name}`,
-        label: `@${org.name}`,
-        sublabel: org.displayName || org.description || t('orgNamespace'),
+        value: `@${repo.name}`,
+        label: `@${repo.name}`,
+        sublabel: repo.displayName || repo.description || t('repoNamespace'),
         kind: 'org',
-        orgId: org.id,
-        visibility: org.visibility === 'public' ? 'public' : 'org',
+        orgId: repo.id,
+        visibility: repo.visibility === 'public' ? 'public' : 'org',
       })
     }
     return opts
-  }, [userId, username, orgs, t])
+  }, [userId, username, repos, t])
 
   const prefix = TYPE_PREFIX[itemType] || ''
   const selectedOption = namespaceOptions.find(o => o.value === selectedNamespace)
@@ -189,7 +189,7 @@ export function ItemCrudDialog({
     if (selectedNamespace === 'public') return publicRegistry?.id
     if (selectedNamespace === `@${username}`) return personalRegistry?.id
     const opt = namespaceOptions.find(o => o.value === selectedNamespace && o.kind === 'org')
-    if (opt?.orgId) return orgRegistries[opt.orgId]?.id
+    if (opt?.orgId) return repoRegistries[opt.orgId]?.id
     return undefined
   }
 

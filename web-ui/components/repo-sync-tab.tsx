@@ -11,7 +11,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import {
-  orgRegistryApi,
+  repoRegistryApi,
   syncApi,
   type SyncLog,
   type CapabilityRegistry,
@@ -22,8 +22,8 @@ import {
   XCircle, Loader2, Plus, Trash2, ChevronDown, ChevronRight,
 } from 'lucide-react'
 
-interface OrgSyncTabProps {
-  orgId: string
+interface RepoSyncTabProps {
+  repoId: string
 }
 
 const SYNC_INTERVAL_OPTIONS = [
@@ -87,13 +87,13 @@ function defaultForm(reg?: CapabilityRegistry): RegistryFormState {
 }
 
 interface RegistryCardProps {
-  orgId: string
+  repoId: string
   registry: CapabilityRegistry
   onRemoved: () => void
   onUpdated: () => void
 }
 
-function RegistryCard({ orgId, registry, onRemoved, onUpdated }: RegistryCardProps) {
+function RegistryCard({ repoId, registry, onRemoved, onUpdated }: RegistryCardProps) {
   const [expanded, setExpanded] = useState(false)
   const [form, setForm] = useState<RegistryFormState>(() => defaultForm(registry))
   const [logs, setLogs] = useState<SyncLog[]>([])
@@ -107,10 +107,10 @@ function RegistryCard({ orgId, registry, onRemoved, onUpdated }: RegistryCardPro
 
   const loadLogs = useCallback(async () => {
     try {
-      const res = await syncApi.listOrgSyncLogs(orgId, 1, 10, registry.id)
+      const res = await syncApi.listRepoSyncLogs(repoId, 1, 10, registry.id)
       setLogs(res.logs ?? [])
     } catch {}
-  }, [orgId, registry.id])
+  }, [repoId, registry.id])
 
   useEffect(() => {
     if (expanded && !logsLoaded) {
@@ -123,7 +123,7 @@ function RegistryCard({ orgId, registry, onRemoved, onUpdated }: RegistryCardPro
     if (syncStatus === 'syncing') {
       const t = setInterval(async () => {
         try {
-          const res = await syncApi.getOrgSyncStatus(orgId, registry.id) as { syncStatus: string }
+          const res = await syncApi.getRepoSyncStatus(repoId, registry.id) as { syncStatus: string }
           setSyncStatus(res.syncStatus)
           if (res.syncStatus !== 'syncing') {
             loadLogs()
@@ -133,13 +133,13 @@ function RegistryCard({ orgId, registry, onRemoved, onUpdated }: RegistryCardPro
       }, 3000)
       return () => clearInterval(t)
     }
-  }, [syncStatus, orgId, registry.id, loadLogs, onUpdated])
+  }, [syncStatus, repoId, registry.id, loadLogs, onUpdated])
 
   const handleSync = async () => {
     setSyncing(true)
     setError('')
     try {
-      await syncApi.triggerOrgSync(orgId, false, registry.id)
+      await syncApi.triggerRepoSync(repoId, false, registry.id)
       setSyncStatus('syncing')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to trigger sync')
@@ -153,7 +153,7 @@ function RegistryCard({ orgId, registry, onRemoved, onUpdated }: RegistryCardPro
     setError('')
     setSuccessMsg('')
     try {
-      await orgRegistryApi.update(orgId, registry.id, {
+      await repoRegistryApi.update(repoId, registry.id, {
         name: form.name,
         externalUrl: form.externalUrl,
         externalBranch: form.externalBranch,
@@ -177,7 +177,7 @@ function RegistryCard({ orgId, registry, onRemoved, onUpdated }: RegistryCardPro
     if (!confirm(`Remove registry "${registry.name || registry.externalUrl}"?`)) return
     setRemoving(true)
     try {
-      await orgRegistryApi.remove(orgId, registry.id)
+      await repoRegistryApi.remove(repoId, registry.id)
       onRemoved()
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to remove')
@@ -345,7 +345,7 @@ function RegistryCard({ orgId, registry, onRemoved, onUpdated }: RegistryCardPro
   )
 }
 
-function AddRegistryForm({ orgId, onAdded }: { orgId: string; onAdded: () => void }) {
+function AddRegistryForm({ repoId, onAdded }: { repoId: string; onAdded: () => void }) {
   const [open, setOpen] = useState(false)
   const [form, setForm] = useState<RegistryFormState>(() => defaultForm())
   const [saving, setSaving] = useState(false)
@@ -369,7 +369,7 @@ function AddRegistryForm({ orgId, onAdded }: { orgId: string; onAdded: () => voi
         excludePatterns: form.excludePatterns.split('\n').map(s => s.trim()).filter(Boolean),
         conflictStrategy: form.conflictStrategy,
       }
-      await orgRegistryApi.add(orgId, payload)
+      await repoRegistryApi.add(repoId, payload)
       setForm(defaultForm())
       setOpen(false)
       onAdded()
@@ -425,16 +425,16 @@ function AddRegistryForm({ orgId, onAdded }: { orgId: string; onAdded: () => voi
   )
 }
 
-export function OrgSyncTab({ orgId }: OrgSyncTabProps) {
+export function RepoSyncTab({ repoId }: RepoSyncTabProps) {
   const [registries, setRegistries] = useState<CapabilityRegistry[]>([])
   const [loading, setLoading] = useState(true)
 
   const loadRegistries = useCallback(async () => {
     try {
-      const res = await orgRegistryApi.list(orgId)
+      const res = await repoRegistryApi.list(repoId)
       setRegistries(res.registries ?? [])
     } catch {}
-  }, [orgId])
+  }, [repoId])
 
   useEffect(() => {
     setLoading(true)
@@ -458,13 +458,13 @@ export function OrgSyncTab({ orgId }: OrgSyncTabProps) {
       {registries.map(reg => (
         <RegistryCard
           key={reg.id}
-          orgId={orgId}
+          repoId={repoId}
           registry={reg}
           onRemoved={loadRegistries}
           onUpdated={loadRegistries}
         />
       ))}
-      <AddRegistryForm orgId={orgId} onAdded={loadRegistries} />
+      <AddRegistryForm repoId={repoId} onAdded={loadRegistries} />
     </div>
   )
 }

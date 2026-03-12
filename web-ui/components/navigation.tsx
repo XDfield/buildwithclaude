@@ -9,18 +9,18 @@ import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/hooks/use-auth";
 import { getLoginUrl } from "@/lib/auth";
-import { useOrgFilter } from "@/lib/org-filter-context";
-import { orgApi, type Organization } from "@/lib/api-client";
+import { useRepoFilter } from "@/lib/repo-filter-context";
+import { repoApi, type Repository } from "@/lib/api-client";
 import { Building2, ChevronDown, Globe } from "lucide-react";
 
 export function Navigation() {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const pathname = usePathname();
   const { user, loading, logout } = useAuth();
-  const { selectedOrg, setSelectedOrg } = useOrgFilter();
-  const [orgs, setOrgs] = useState<Organization[]>([]);
-  const [orgDropdownOpen, setOrgDropdownOpen] = useState(false);
-  const orgDropdownRef = useRef<HTMLDivElement>(null);
+  const { selectedRepo, setSelectedRepo } = useRepoFilter();
+  const [repos, setRepos] = useState<Repository[]>([]);
+  const [repoDropdownOpen, setRepoDropdownOpen] = useState(false);
+  const repoDropdownRef = useRef<HTMLDivElement>(null);
 
   const navigationLinks = [
     { href: "/skills", label: "Skills" },
@@ -31,16 +31,16 @@ export function Navigation() {
 
   useEffect(() => {
     if (user?.sub) {
-      orgApi.listMy(user.sub)
-        .then(res => setOrgs(res.organizations || []))
+      repoApi.listMy(user.sub)
+        .then(res => setRepos(res.repositories || []))
         .catch(() => {});
     }
   }, [user?.sub]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
-      if (orgDropdownRef.current && !orgDropdownRef.current.contains(e.target as Node)) {
-        setOrgDropdownOpen(false);
+      if (repoDropdownRef.current && !repoDropdownRef.current.contains(e.target as Node)) {
+        setRepoDropdownOpen(false);
       }
     }
     document.addEventListener("mousedown", handleClickOutside);
@@ -57,48 +57,48 @@ export function Navigation() {
                 Build with Claude
               </Link>
 
-              {/* Org switcher */}
+              {/* Repo switcher */}
               {user && (
-                <div className="relative hidden sm:block" ref={orgDropdownRef}>
+                <div className="relative hidden sm:block" ref={repoDropdownRef}>
                   <button
-                    onClick={() => setOrgDropdownOpen(v => !v)}
+                    onClick={() => setRepoDropdownOpen(v => !v)}
                     className="flex items-center gap-1.5 px-2.5 py-1 rounded-md border border-border/60 bg-muted/30 text-sm hover:bg-muted/60 transition-colors"
                   >
-                    {selectedOrg ? (
-                      <><Building2 className="h-3.5 w-3.5 text-muted-foreground" /><span className="max-w-[120px] truncate">{selectedOrg.displayName || selectedOrg.name}</span></>
+                    {selectedRepo ? (
+                      <><Building2 className="h-3.5 w-3.5 text-muted-foreground" /><span className="max-w-[120px] truncate">{selectedRepo.displayName || selectedRepo.name}</span></>
                     ) : (
                       <><Globe className="h-3.5 w-3.5 text-muted-foreground" /><span>All</span></>
                     )}
                     <ChevronDown className="h-3 w-3 text-muted-foreground" />
                   </button>
 
-                  {orgDropdownOpen && (
+                  {repoDropdownOpen && (
                     <div className="absolute top-full left-0 mt-1 z-50 min-w-[180px] rounded-md border border-border bg-popover shadow-md py-1">
                       <button
-                        onClick={() => { setSelectedOrg(null); setOrgDropdownOpen(false); }}
+                        onClick={() => { setSelectedRepo(null); setRepoDropdownOpen(false); }}
                         className={cn(
                           "w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted/50 transition-colors",
-                          !selectedOrg && "bg-muted/30 font-medium"
+                          !selectedRepo && "bg-muted/30 font-medium"
                         )}
                       >
                         <Globe className="h-3.5 w-3.5 text-muted-foreground" />
                         All
                       </button>
-                      {orgs.map(org => (
+                      {repos.map(repo => (
                         <button
-                          key={org.id}
-                          onClick={() => { setSelectedOrg(org); setOrgDropdownOpen(false); }}
+                          key={repo.id}
+                          onClick={() => { setSelectedRepo(repo); setRepoDropdownOpen(false); }}
                           className={cn(
                             "w-full text-left px-3 py-2 text-sm flex items-center gap-2 hover:bg-muted/50 transition-colors",
-                            selectedOrg?.id === org.id && "bg-muted/30 font-medium"
+                            selectedRepo?.id === repo.id && "bg-muted/30 font-medium"
                           )}
                         >
                           <Building2 className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="truncate">{org.displayName || org.name}</span>
+                          <span className="truncate">{repo.displayName || repo.name}</span>
                         </button>
                       ))}
-                      {orgs.length === 0 && (
-                        <p className="px-3 py-2 text-xs text-muted-foreground">No organizations</p>
+                      {repos.length === 0 && (
+                        <p className="px-3 py-2 text-xs text-muted-foreground">No repositories</p>
                       )}
                     </div>
                   )}
@@ -212,31 +212,31 @@ export function Navigation() {
                 </DialogPrimitive.Close>
               </div>
 
-              {/* Mobile org switcher */}
+              {/* Mobile repo switcher */}
               {user && (
                 <div className="border-b border-border px-4 py-3">
-                  <p className="text-xs text-muted-foreground mb-2">Organization</p>
+                  <p className="text-xs text-muted-foreground mb-2">Repository</p>
                   <div className="flex flex-wrap gap-1.5">
                     <button
-                      onClick={() => setSelectedOrg(null)}
+                      onClick={() => setSelectedRepo(null)}
                       className={cn(
                         "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm transition-colors",
-                        !selectedOrg ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+                        !selectedRepo ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
                       )}
                     >
                       <Globe className="h-3.5 w-3.5" /> All
                     </button>
-                    {orgs.map(org => (
+                    {repos.map(repo => (
                       <button
-                        key={org.id}
-                        onClick={() => setSelectedOrg(org)}
+                        key={repo.id}
+                        onClick={() => setSelectedRepo(repo)}
                         className={cn(
                           "flex items-center gap-1.5 px-2.5 py-1 rounded-md text-sm transition-colors",
-                          selectedOrg?.id === org.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
+                          selectedRepo?.id === repo.id ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground hover:text-foreground"
                         )}
                       >
                         <Building2 className="h-3.5 w-3.5" />
-                        {org.displayName || org.name}
+                        {repo.displayName || repo.name}
                       </button>
                     ))}
                   </div>

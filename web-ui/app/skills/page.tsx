@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Sparkles, Loader2, Plus } from 'lucide-react'
 import { ItemCrudDialog } from '@/components/item-crud-dialog'
 import { CapabilityItemCard } from '@/components/capability-item-card'
-import { useOrgFilter } from '@/lib/org-filter-context'
-import { useOrgItems } from '@/hooks/use-org-items'
+import { useRepoFilter } from '@/lib/repo-filter-context'
+import { useRepoItems } from '@/hooks/use-repo-items'
 import { itemApi, type CapabilityItem } from '@/lib/api-client'
 import { useTranslations } from 'next-intl'
 import { useAuth } from '@/hooks/use-auth'
@@ -18,8 +18,8 @@ export default function SkillsPage() {
   const t = useTranslations('skills')
   const tc = useTranslations('common')
   const { user } = useAuth()
-  const { selectedOrg } = useOrgFilter()
-  const { items: orgItems, loading: orgLoading } = useOrgItems(selectedOrg, 'skill')
+  const { selectedRepo } = useRepoFilter()
+  const { items: repoItems, loading: repoLoading } = useRepoItems(selectedRepo, 'skill')
 
   const [globalItems, setGlobalItems] = useState<CapabilityItem[]>([])
   const [total, setTotal] = useState(0)
@@ -58,32 +58,32 @@ export default function SkillsPage() {
   }, [debouncedSearch])
 
   useEffect(() => {
-    if (!selectedOrg) {
+    if (!selectedRepo) {
       offsetRef.current = 0
       fetchGlobal(true)
     }
-  }, [fetchGlobal, selectedOrg])
+  }, [fetchGlobal, selectedRepo])
 
   useEffect(() => {
-    if (!selectedOrg) return
+    if (!selectedRepo) return
     const observer = new IntersectionObserver(
       (entries) => { if (entries[0].isIntersecting && hasMore && !isLoading) fetchGlobal(false) },
       { threshold: 0.1, rootMargin: '100px' }
     )
     if (loadMoreRef.current) observer.observe(loadMoreRef.current)
     return () => observer.disconnect()
-  }, [hasMore, isLoading, fetchGlobal, selectedOrg])
+  }, [hasMore, isLoading, fetchGlobal, selectedRepo])
 
-  const isOrgMode = !!selectedOrg
-  const items = isOrgMode ? orgItems : globalItems
-  const loading = isOrgMode ? orgLoading : isLoading
-  const displayTotal = isOrgMode ? orgItems.length : total
+  const isRepoMode = !!selectedRepo
+  const items = isRepoMode ? repoItems : globalItems
+  const loading = isRepoMode ? repoLoading : isLoading
+  const displayTotal = isRepoMode ? repoItems.length : total
 
-  const filteredOrgItems = isOrgMode && searchQuery
-    ? orgItems.filter(i => i.name.toLowerCase().includes(searchQuery.toLowerCase()) || i.description?.toLowerCase().includes(searchQuery.toLowerCase()))
-    : orgItems
+  const filteredOrgItems = isRepoMode && searchQuery
+    ? repoItems.filter(i => i.name.toLowerCase().includes(searchQuery.toLowerCase()) || i.description?.toLowerCase().includes(searchQuery.toLowerCase()))
+    : repoItems
 
-  const displayItems = isOrgMode ? filteredOrgItems : globalItems
+  const displayItems = isRepoMode ? filteredOrgItems : globalItems
 
   return (
     <div className="min-h-screen">
@@ -93,7 +93,7 @@ export default function SkillsPage() {
             <h1 className="text-2xl font-semibold mb-1 flex items-center gap-2.5">
               <Sparkles className="h-6 w-6 text-yellow-500" />
               {t('title')}
-              {isOrgMode && <span className="text-base font-normal text-muted-foreground">— {selectedOrg.displayName || selectedOrg.name}</span>}
+              {isRepoMode && <span className="text-base font-normal text-muted-foreground">— {selectedRepo.displayName || selectedRepo.name}</span>}
             </h1>
             <p className="text-sm text-muted-foreground">{displayTotal} {t('subtitle')}</p>
           </div>
@@ -131,7 +131,7 @@ export default function SkillsPage() {
           </div>
         )}
 
-        {!isOrgMode && (
+        {!isRepoMode && (
           <div ref={loadMoreRef} className="py-8 flex justify-center">
             {isLoading && (
               <div className="flex items-center gap-2 text-muted-foreground">
@@ -150,7 +150,7 @@ export default function SkillsPage() {
         open={showCreate}
         onOpenChange={setShowCreate}
         itemType="skill"
-        onSaved={() => { setShowCreate(false); if (!selectedOrg) fetchGlobal(true) }}
+        onSaved={() => { setShowCreate(false); if (!selectedRepo) fetchGlobal(true) }}
       />
     </div>
   )

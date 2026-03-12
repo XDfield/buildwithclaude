@@ -6,8 +6,8 @@ import { Button } from '@/components/ui/button'
 import { Terminal, Loader2, Plus } from 'lucide-react'
 import { ItemCrudDialog } from '@/components/item-crud-dialog'
 import { CapabilityItemCard } from '@/components/capability-item-card'
-import { useOrgFilter } from '@/lib/org-filter-context'
-import { useOrgItems } from '@/hooks/use-org-items'
+import { useRepoFilter } from '@/lib/repo-filter-context'
+import { useRepoItems } from '@/hooks/use-repo-items'
 import { itemApi, type CapabilityItem } from '@/lib/api-client'
 import { useTranslations } from 'next-intl'
 import { useAuth } from '@/hooks/use-auth'
@@ -18,8 +18,8 @@ export default function CommandsPage() {
   const t = useTranslations('commands')
   const tc = useTranslations('common')
   const { user } = useAuth()
-  const { selectedOrg } = useOrgFilter()
-  const { items: orgItems, loading: orgLoading } = useOrgItems(selectedOrg, 'command')
+  const { selectedRepo } = useRepoFilter()
+  const { items: repoItems, loading: repoLoading } = useRepoItems(selectedRepo, 'command')
 
   const [allGlobal, setAllGlobal] = useState<CapabilityItem[]>([])
   const [total, setTotal] = useState(0)
@@ -39,10 +39,10 @@ export default function CommandsPage() {
     } catch { /* ignore */ } finally { setIsLoading(false) }
   }, [])
 
-  useEffect(() => { if (!selectedOrg) fetchGlobal() }, [fetchGlobal, selectedOrg])
+  useEffect(() => { if (!selectedRepo) fetchGlobal() }, [fetchGlobal, selectedRepo])
 
-  const sourceItems = selectedOrg ? orgItems : allGlobal
-  const loading = selectedOrg ? orgLoading : isLoading
+  const sourceItems = selectedRepo ? repoItems : allGlobal
+  const loading = selectedRepo ? repoLoading : isLoading
 
   const categories = useMemo(() => {
     const counts = new Map<string, number>()
@@ -65,7 +65,7 @@ export default function CommandsPage() {
   const displayedItems = filteredItems.slice(0, displayCount)
   const hasMore = displayCount < filteredItems.length
 
-  useEffect(() => { setDisplayCount(ITEMS_PER_PAGE) }, [selectedCategory, searchQuery, selectedOrg])
+  useEffect(() => { setDisplayCount(ITEMS_PER_PAGE) }, [selectedCategory, searchQuery, selectedRepo])
 
   useEffect(() => {
     const observer = new IntersectionObserver(
@@ -84,7 +84,7 @@ export default function CommandsPage() {
             <h1 className="text-2xl font-semibold mb-1 flex items-center gap-2.5">
               <Terminal className="h-6 w-6 text-green-500" />
               {t('title')}
-              {selectedOrg && <span className="text-base font-normal text-muted-foreground">— {selectedOrg.displayName || selectedOrg.name}</span>}
+              {selectedRepo && <span className="text-base font-normal text-muted-foreground">— {selectedRepo.displayName || selectedRepo.name}</span>}
             </h1>
             <p className="text-sm text-muted-foreground">{total} {t('subtitle')}</p>
           </div>
@@ -127,7 +127,7 @@ export default function CommandsPage() {
         </div>
       </div>
 
-      <ItemCrudDialog open={showCreate} onOpenChange={setShowCreate} itemType="command" onSaved={() => { setShowCreate(false); if (!selectedOrg) fetchGlobal() }} />
+      <ItemCrudDialog open={showCreate} onOpenChange={setShowCreate} itemType="command" onSaved={() => { setShowCreate(false); if (!selectedRepo) fetchGlobal() }} />
     </div>
   )
 }

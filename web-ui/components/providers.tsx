@@ -2,7 +2,7 @@
 
 import { createContext, useContext, useState, useEffect, type ReactNode } from 'react'
 import { NextIntlClientProvider } from 'next-intl'
-import { OrgFilterProvider } from '@/lib/org-filter-context'
+import { RepoFilterProvider } from '@/lib/repo-filter-context'
 import zhMessages from '@/messages/zh.json'
 import enMessages from '@/messages/en.json'
 
@@ -47,9 +47,9 @@ export function Providers({ children }: { children: ReactNode }) {
   return (
     <LocaleContext.Provider value={{ locale, setLocale }}>
       <NextIntlClientProvider locale={locale} messages={MESSAGES[locale]} timeZone="Asia/Shanghai">
-        <OrgFilterProvider>
+        <RepoFilterProvider>
           {children}
-        </OrgFilterProvider>
+        </RepoFilterProvider>
       </NextIntlClientProvider>
     </LocaleContext.Provider>
   )

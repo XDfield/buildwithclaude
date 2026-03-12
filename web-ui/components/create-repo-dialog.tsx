@@ -16,24 +16,24 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { orgApi, type Organization } from '@/lib/api-client'
+import { repoApi, type Repository } from '@/lib/api-client'
 import { useTranslations } from 'next-intl'
 
-interface CreateOrgDialogProps {
+interface CreateRepoDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   userId: string
-  onCreated: (org: Organization) => void
+  onCreated: (repo: Repository) => void
 }
 
-export function CreateOrgDialog({ open, onOpenChange, userId, onCreated }: CreateOrgDialogProps) {
-  const t = useTranslations('createOrg')
+export function CreateRepoDialog({ open, onOpenChange, userId, onCreated }: CreateRepoDialogProps) {
+  const t = useTranslations('createRepo')
 
   const [name, setName] = useState('')
   const [displayName, setDisplayName] = useState('')
   const [description, setDescription] = useState('')
   const [visibility, setVisibility] = useState<'public' | 'private'>('private')
-  const [orgType, setOrgType] = useState<'normal' | 'sync'>('normal')
+  const [repoType, setRepoType] = useState<'normal' | 'sync'>('normal')
 
   const [externalUrl, setExternalUrl] = useState('')
   const [externalBranch, setExternalBranch] = useState('main')
@@ -57,7 +57,7 @@ export function CreateOrgDialog({ open, onOpenChange, userId, onCreated }: Creat
     setDisplayName('')
     setDescription('')
     setVisibility('private')
-    setOrgType('normal')
+    setRepoType('normal')
     setExternalUrl('')
     setExternalBranch('main')
     setSyncEnabled(true)
@@ -71,23 +71,23 @@ export function CreateOrgDialog({ open, onOpenChange, userId, onCreated }: Creat
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!name.trim()) return
-    if (orgType === 'sync' && !externalUrl.trim()) {
+    if (repoType === 'sync' && !externalUrl.trim()) {
       setError(t('errorGitUrlRequired'))
       return
     }
     setLoading(true)
     setError('')
     try {
-      const payload: Parameters<typeof orgApi.create>[0] = {
+      const payload: Parameters<typeof repoApi.create>[0] = {
         name: name.trim(),
         displayName: displayName.trim() || name.trim(),
         description: description.trim(),
         visibility,
         ownerId: userId,
-        orgType,
+        repoType,
       }
 
-      if (orgType === 'sync') {
+      if (repoType === 'sync') {
         payload.syncRegistries = [{
           externalUrl: externalUrl.trim(),
           externalBranch: externalBranch.trim() || 'main',
@@ -99,9 +99,9 @@ export function CreateOrgDialog({ open, onOpenChange, userId, onCreated }: Creat
         }]
       }
 
-      const res = await orgApi.create(payload)
-      const org = 'organization' in res ? res.organization : res as Organization
-      onCreated(org as Organization)
+      const res = await repoApi.create(payload)
+      const repo = 'repository' in res ? res.repository : res as Repository
+      onCreated(repo as Repository)
       onOpenChange(false)
       reset()
     } catch (err) {
@@ -158,34 +158,34 @@ export function CreateOrgDialog({ open, onOpenChange, userId, onCreated }: Creat
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">{t('labelOrgType')}</label>
+            <label className="text-sm font-medium">{t('labelRepoType')}</label>
             <div className="flex gap-3">
               <button
                 type="button"
-                onClick={() => setOrgType('normal')}
+                onClick={() => setRepoType('normal')}
                 className={`flex-1 px-3 py-2 rounded-md border text-sm transition-colors ${
-                  orgType === 'normal'
+                  repoType === 'normal'
                     ? 'border-primary bg-primary/5 text-primary'
                     : 'border-border text-muted-foreground hover:border-foreground/30'
                 }`}
               >
-                {t('orgTypeNormal')}
+                {t('repoTypeNormal')}
               </button>
               <button
                 type="button"
-                onClick={() => setOrgType('sync')}
+                onClick={() => setRepoType('sync')}
                 className={`flex-1 px-3 py-2 rounded-md border text-sm transition-colors ${
-                  orgType === 'sync'
+                  repoType === 'sync'
                     ? 'border-primary bg-primary/5 text-primary'
                     : 'border-border text-muted-foreground hover:border-foreground/30'
                 }`}
               >
-                {t('orgTypeSync')}
+                {t('repoTypeSync')}
               </button>
             </div>
           </div>
 
-          {orgType === 'sync' && (
+          {repoType === 'sync' && (
             <div className="space-y-4 p-4 rounded-lg border border-border bg-muted/20">
               <div className="space-y-1.5">
                 <label className="text-sm font-medium">{t('labelGitUrl')} <span className="text-destructive">*</span></label>
@@ -193,7 +193,7 @@ export function CreateOrgDialog({ open, onOpenChange, userId, onCreated }: Creat
                   value={externalUrl}
                   onChange={e => setExternalUrl(e.target.value)}
                   placeholder={t('placeholderGitUrl')}
-                  required={orgType === 'sync'}
+                  required={repoType === 'sync'}
                 />
               </div>
               <div className="space-y-1.5">

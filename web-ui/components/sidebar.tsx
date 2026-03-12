@@ -5,8 +5,8 @@ import { usePathname, useRouter } from 'next/navigation'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
 import { useAuth } from '@/hooks/use-auth'
-import { useOrgFilter } from '@/lib/org-filter-context'
-import { orgApi, type Organization } from '@/lib/api-client'
+import { useRepoFilter } from '@/lib/repo-filter-context'
+import { repoApi, type Repository } from '@/lib/api-client'
 import { useTranslations } from 'next-intl'
 import {
   Sparkles,
@@ -53,9 +53,9 @@ export function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const { user } = useAuth()
-  const { selectedOrg, setSelectedOrg } = useOrgFilter()
-  const [orgs, setOrgs] = useState<Organization[]>([])
-  const [orgsExpanded, setOrgsExpanded] = useState(true)
+  const { selectedRepo, setSelectedRepo } = useRepoFilter()
+  const [repos, setRepos] = useState<Repository[]>([])
+  const [reposExpanded, setReposExpanded] = useState(true)
   const t = useTranslations('nav')
   const ts = useTranslations('skills')
   const tsa = useTranslations('subagents')
@@ -71,17 +71,17 @@ export function Sidebar() {
 
   useEffect(() => {
     if (user?.sub) {
-      orgApi.listMy(user.sub)
-        .then(res => setOrgs(res.organizations || []))
+      repoApi.listMy(user.sub)
+        .then(res => setRepos(res.repositories || []))
         .catch(() => {})
     } else {
-      setOrgs([])
+      setRepos([])
     }
   }, [user?.sub])
 
-  const handleSelectOrg = (org: Organization | null) => {
-    setSelectedOrg(org)
-    if (org) {
+  const handleSelectRepo = (repo: Repository | null) => {
+    setSelectedRepo(repo)
+    if (repo) {
       const current = NAV_ITEMS.find(n => pathname.startsWith(n.href))
       if (current) {
         router.push(current.href)
@@ -111,7 +111,7 @@ export function Sidebar() {
               href={item.href}
               label={item.label}
               icon={item.icon}
-              active={!selectedOrg && pathname === item.href}
+              active={!selectedRepo && pathname === item.href}
             />
           ))}
         </div>
@@ -119,20 +119,20 @@ export function Sidebar() {
         {user && (
           <div className="mt-2">
             <button
-              onClick={() => setOrgsExpanded(v => !v)}
+              onClick={() => setReposExpanded(v => !v)}
               className="w-full flex items-center justify-between px-3 py-1 text-xs font-medium text-muted-foreground/60 uppercase tracking-wider hover:text-muted-foreground transition-colors"
             >
-              <span>{t('organizations')}</span>
-              {orgsExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+              <span>{t('repositories')}</span>
+              {reposExpanded ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
             </button>
 
-            {orgsExpanded && (
+            {reposExpanded && (
               <div className="mt-0.5 space-y-0.5">
                 <button
-                  onClick={() => handleSelectOrg(null)}
+                  onClick={() => handleSelectRepo(null)}
                   className={cn(
                     'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors',
-                    !selectedOrg
+                    !selectedRepo
                       ? 'bg-primary/10 text-primary font-medium'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                   )}
@@ -141,22 +141,22 @@ export function Sidebar() {
                   <span className="truncate">{t('allPublic')}</span>
                 </button>
 
-                {orgs.map(org => (
-                  <div key={org.id}>
+                {repos.map(repo => (
+                  <div key={repo.id}>
                     <button
-                      onClick={() => handleSelectOrg(org)}
+                      onClick={() => handleSelectRepo(repo)}
                       className={cn(
                         'w-full flex items-center gap-2.5 px-3 py-2 rounded-md text-sm transition-colors',
-                        selectedOrg?.id === org.id
+                        selectedRepo?.id === repo.id
                           ? 'bg-primary/10 text-primary font-medium'
                           : 'text-muted-foreground hover:text-foreground hover:bg-muted/50'
                       )}
                     >
                       <Building2 className="h-4 w-4 shrink-0" />
-                      <span className="truncate flex-1 text-left">{org.displayName || org.name}</span>
+                      <span className="truncate flex-1 text-left">{repo.displayName || repo.name}</span>
                     </button>
 
-                    {selectedOrg?.id === org.id && (
+                    {selectedRepo?.id === repo.id && (
                       <div className="mt-0.5 space-y-0.5">
                         {NAV_ITEMS.map(item => (
                           <NavItem
@@ -173,8 +173,8 @@ export function Sidebar() {
                   </div>
                 ))}
 
-                {orgs.length === 0 && (
-                  <p className="px-3 py-2 text-xs text-muted-foreground">{t('noOrgs')}</p>
+                {repos.length === 0 && (
+                  <p className="px-3 py-2 text-xs text-muted-foreground">{t('noRepos')}</p>
                 )}
               </div>
             )}

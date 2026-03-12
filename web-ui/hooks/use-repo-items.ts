@@ -1,13 +1,13 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { itemApi, type CapabilityItem, type Organization } from '@/lib/api-client'
+import { itemApi, type CapabilityItem, type Repository } from '@/lib/api-client'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
-async function getOrgRegistry(orgId: string): Promise<{ id: string } | null> {
+async function getRepoRegistry(repoId: string): Promise<{ id: string } | null> {
   try {
-    const res = await fetch(`${API_BASE}/api/organizations/${orgId}/registry`)
+    const res = await fetch(`${API_BASE}/api/repositories/${repoId}/registry`)
     if (!res.ok) return null
     return res.json()
   } catch {
@@ -15,17 +15,17 @@ async function getOrgRegistry(orgId: string): Promise<{ id: string } | null> {
   }
 }
 
-export function useOrgItems(selectedOrg: Organization | null, itemType: string) {
+export function useRepoItems(selectedRepo: Repository | null, itemType: string) {
   const [items, setItems] = useState<CapabilityItem[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {
-    if (!selectedOrg) {
+    if (!selectedRepo) {
       setItems([])
       return
     }
     setLoading(true)
-    getOrgRegistry(selectedOrg.id).then(registry => {
+    getRepoRegistry(selectedRepo.id).then(registry => {
       if (!registry) {
         setItems([])
         setLoading(false)
@@ -39,7 +39,7 @@ export function useOrgItems(selectedOrg: Organization | null, itemType: string) 
     }).finally(() => {
       setLoading(false)
     })
-  }, [selectedOrg, itemType])
+  }, [selectedRepo, itemType])
 
   return { items, loading }
 }
