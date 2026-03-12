@@ -72,12 +72,12 @@ export function CapabilityItemCard({ item, className }: CapabilityItemCardProps)
     <Link
       href={`/items/${item.id}`}
       className={cn(
-        'group flex flex-col p-4 rounded-lg border border-border bg-card hover:border-primary/40 hover:shadow-sm transition-all',
+        'group flex flex-col p-5 rounded-lg border border-border bg-card hover:border-primary/40 hover:shadow-sm transition-all',
         className
       )}
     >
       {/* Header */}
-      <div className="flex items-start justify-between gap-2 mb-2">
+      <div className="flex items-start justify-between gap-2 mb-4">
         <div className="flex items-center gap-2 min-w-0">
           <Icon className={cn('h-4 w-4 shrink-0', iconColor)} />
           <span className="font-medium text-sm truncate group-hover:text-primary transition-colors">
@@ -93,7 +93,7 @@ export function CapabilityItemCard({ item, className }: CapabilityItemCardProps)
 
       {/* Description */}
       {item.description && (
-        <p className="text-xs text-muted-foreground line-clamp-2 mb-3 flex-1">
+        <p className="text-xs text-muted-foreground line-clamp-2 mb-5 flex-1">
           {item.description}
         </p>
       )}
@@ -120,7 +120,7 @@ export function CapabilityItemCard({ item, className }: CapabilityItemCardProps)
       </div>
 
       {/* Actions */}
-      <div className="flex items-center gap-1.5 mt-auto pt-2 border-t border-border/50">
+      <div className="flex items-center gap-1.5 mt-auto pt-4 border-t border-border/50">
         <button
           onClick={handleCopy}
           className="flex items-center gap-1 px-2 py-1 rounded text-xs text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
