@@ -2,7 +2,6 @@ import { type ClassValue, clsx } from "clsx"
 import { twMerge } from "tailwind-merge"
 import { type Subagent } from "./subagents-types"
 import { type Command } from "./commands-types"
-import { type Hook } from "./hooks-types"
 import { type Skill } from "./skills-types"
 
 export function cn(...inputs: ClassValue[]) {
@@ -51,29 +50,6 @@ export function generateCommandMarkdown(command: Command): string {
   frontmatter.push('---', '')
 
   return frontmatter.join('\n') + command.content
-}
-
-export function generateHookMarkdown(hook: Hook): string {
-  const frontmatter = [
-    '---',
-    `name: ${hook.name}`,
-    `description: ${hook.description}`,
-    `category: ${hook.category}`,
-    `event: ${hook.event}`,
-    `matcher: ${hook.matcher}`
-  ]
-
-  if (hook.language) {
-    frontmatter.push(`language: ${hook.language}`)
-  }
-
-  if (hook.version) {
-    frontmatter.push(`version: ${hook.version}`)
-  }
-
-  frontmatter.push('---', '')
-
-  return frontmatter.join('\n') + hook.content
 }
 
 export function generateSkillMarkdown(skill: Skill): string {

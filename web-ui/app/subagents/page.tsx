@@ -5,21 +5,23 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Bot, Loader2, Plus } from 'lucide-react'
 import { ItemCrudDialog } from '@/components/item-crud-dialog'
-import { SkillItemCard } from '@/components/skill-item-card'
+import { CapabilityItemCard } from '@/components/capability-item-card'
 import { useOrgFilter } from '@/lib/org-filter-context'
 import { useOrgItems } from '@/hooks/use-org-items'
-import { itemApi, type SkillItem } from '@/lib/api-client'
+import { itemApi, type CapabilityItem } from '@/lib/api-client'
 import { useTranslations } from 'next-intl'
+import { useAuth } from '@/hooks/use-auth'
 
 const ITEMS_PER_PAGE = 24
 
 export default function SubagentsPage() {
   const t = useTranslations('subagents')
   const tc = useTranslations('common')
+  const { user } = useAuth()
   const { selectedOrg } = useOrgFilter()
   const { items: orgItems, loading: orgLoading } = useOrgItems(selectedOrg, 'subagent')
 
-  const [allGlobal, setAllGlobal] = useState<SkillItem[]>([])
+  const [allGlobal, setAllGlobal] = useState<CapabilityItem[]>([])
   const [total, setTotal] = useState(0)
   const [isLoading, setIsLoading] = useState(true)
   const [searchQuery, setSearchQuery] = useState('')
@@ -86,10 +88,12 @@ export default function SubagentsPage() {
             </h1>
             <p className="text-sm text-muted-foreground">{total} {t('subtitle')}</p>
           </div>
-          <Button onClick={() => setShowCreate(true)} size="sm">
-            <Plus className="h-4 w-4 mr-1.5" />
-            {t('newSubagent')}
-          </Button>
+          {user && (
+            <Button onClick={() => setShowCreate(true)} size="sm">
+              <Plus className="h-4 w-4 mr-1.5" />
+              {t('newSubagent')}
+            </Button>
+          )}
         </div>
 
         <div className="mb-6">
@@ -110,7 +114,7 @@ export default function SubagentsPage() {
         ) : filteredItems.length > 0 ? (
           <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
             {displayedItems.map(item => (
-              <SkillItemCard key={item.id} item={item} />
+              <CapabilityItemCard key={item.id} item={item} />
             ))}
           </div>
         ) : (

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import Link from 'next/link'
-import { artifactApi, type SkillItem } from '@/lib/api-client'
+import { artifactApi, type CapabilityItem } from '@/lib/api-client'
 import { cn } from '@/lib/utils'
 import { useTranslations } from 'next-intl'
 import {
@@ -32,19 +32,19 @@ const TYPE_COLOR: Record<string, string> = {
   mcp: 'text-purple-500',
 }
 
-function installCommand(item: SkillItem) {
+function installCommand(item: CapabilityItem) {
   const owner = item.registry?.orgId && item.registry.orgId !== 'public'
     ? item.registry.orgId
     : item.createdBy || 'public'
   return `npx costrict install ${owner}/${item.slug}`
 }
 
-interface SkillItemCardProps {
-  item: SkillItem
+interface CapabilityItemCardProps {
+  item: CapabilityItem
   className?: string
 }
 
-export function SkillItemCard({ item, className }: SkillItemCardProps) {
+export function CapabilityItemCard({ item, className }: CapabilityItemCardProps) {
   const [copied, setCopied] = useState(false)
   const t = useTranslations('card')
   const tc = useTranslations('common')

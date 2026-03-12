@@ -1,6 +1,5 @@
 import { cookies } from 'next/headers'
 import DashboardClient from './dashboard-client'
-import Link from 'next/link'
 import { getLoginUrl } from '@/lib/auth'
 
 export const dynamic = 'force-dynamic'
@@ -25,16 +24,7 @@ async function getCurrentUser() {
 export default async function DashboardPage() {
   const user = await getCurrentUser()
   if (!user) {
-    return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-muted-foreground mb-4">Please log in to access your dashboard</p>
-          <a href={getLoginUrl('/dashboard')} className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors">
-            Login
-          </a>
-        </div>
-      </div>
-    )
+    return <DashboardClient user={null} loginUrl={getLoginUrl('/dashboard')} />
   }
   return <DashboardClient user={user} />
 }

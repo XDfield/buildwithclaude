@@ -17,7 +17,7 @@ import {
   SelectValue,
 } from '@/components/ui/select'
 import { ChevronDown, Globe, Lock, Building2, User, Users } from 'lucide-react'
-import { itemApi, orgApi, registryApi, registryApi2, type SkillItem, type Organization, type SkillRegistry } from '@/lib/api-client'
+import { itemApi, orgApi, registryApi, registryApi2, type CapabilityItem, type Organization, type CapabilityRegistry } from '@/lib/api-client'
 import { useAuth } from '@/hooks/use-auth'
 import { useTranslations } from 'next-intl'
 
@@ -62,8 +62,8 @@ interface ItemCrudDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   itemType: string
-  editItem?: SkillItem | null
-  onSaved: (item: SkillItem) => void
+  editItem?: CapabilityItem | null
+  onSaved: (item: CapabilityItem) => void
 }
 
 export function ItemCrudDialog({
@@ -79,9 +79,9 @@ export function ItemCrudDialog({
   const t = useTranslations('crud')
 
   const [orgs, setOrgs] = useState<Organization[]>([])
-  const [orgRegistries, setOrgRegistries] = useState<Record<string, SkillRegistry>>({})
-  const [personalRegistry, setPersonalRegistry] = useState<SkillRegistry | null>(null)
-  const [publicRegistry, setPublicRegistry] = useState<SkillRegistry | null>(null)
+  const [orgRegistries, setOrgRegistries] = useState<Record<string, CapabilityRegistry>>({})
+  const [personalRegistry, setPersonalRegistry] = useState<CapabilityRegistry | null>(null)
+  const [publicRegistry, setPublicRegistry] = useState<CapabilityRegistry | null>(null)
 
   const [selectedNamespace, setSelectedNamespace] = useState<string>('public')
   const [namespaceOpen, setNamespaceOpen] = useState(false)
@@ -199,7 +199,7 @@ export function ItemCrudDialog({
     setLoading(true)
     setError('')
     try {
-      let item: SkillItem
+      let item: CapabilityItem
       const visibility = selectedOption?.visibility || 'public'
       if (isEdit && editItem) {
         item = await itemApi.update(editItem.id, {

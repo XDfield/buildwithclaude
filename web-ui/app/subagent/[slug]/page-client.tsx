@@ -6,7 +6,6 @@ import { Button } from '@/components/ui/button'
 import { ArrowLeft, Copy, Download, Check, ExternalLink } from 'lucide-react'
 import { type Subagent } from '@/lib/subagents-types'
 import { generateSubagentMarkdown } from '@/lib/utils'
-import { generatePluginCommands, getMarketplaceAddCommand } from '@/lib/plugin-utils'
 
 interface SubagentPageClientProps {
   subagent: Subagent
@@ -15,8 +14,6 @@ interface SubagentPageClientProps {
 export function SubagentPageClient({ subagent }: SubagentPageClientProps) {
   const [copied, setCopied] = useState(false)
   const [copiedCommand, setCopiedCommand] = useState<string | null>(null)
-  const pluginCommands = generatePluginCommands('subagent', subagent.category)
-  const marketplaceAdd = getMarketplaceAddCommand()
 
   const handleCopy = async () => {
     const markdown = generateSubagentMarkdown(subagent)
@@ -101,50 +98,7 @@ export function SubagentPageClient({ subagent }: SubagentPageClientProps) {
           </p>
         </div>
 
-        {/* Installation */}
-        <div className="mb-10">
-          <h2 className="text-lg font-medium mb-4">Installation</h2>
-          <div className="space-y-4">
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">
-                Step 1: Add the marketplace (one-time)
-              </p>
-              <div className="bg-card rounded-lg p-4 font-mono text-sm flex items-center justify-between border border-border">
-                <span className="break-all">{marketplaceAdd}</span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(marketplaceAdd)
-                    setCopiedCommand('marketplace')
-                    setTimeout(() => setCopiedCommand(null), 2000)
-                  }}
-                >
-                  {copiedCommand === 'marketplace' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-            <div>
-              <p className="text-sm text-muted-foreground mb-2">
-                Step 2: Install the {subagent.category} agents
-              </p>
-              <div className="bg-card rounded-lg p-4 font-mono text-sm flex items-center justify-between border border-border">
-                <span className="break-all">{pluginCommands.install}</span>
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  onClick={async () => {
-                    await navigator.clipboard.writeText(pluginCommands.install)
-                    setCopiedCommand('install')
-                    setTimeout(() => setCopiedCommand(null), 2000)
-                  }}
-                >
-                  {copiedCommand === 'install' ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
-                </Button>
-              </div>
-            </div>
-          </div>
-        </div>
+
 
         {/* Usage */}
         <div className="mb-10">

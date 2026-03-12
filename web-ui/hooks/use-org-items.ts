@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { itemApi, type SkillItem, type Organization } from '@/lib/api-client'
+import { itemApi, type CapabilityItem, type Organization } from '@/lib/api-client'
 
 const API_BASE = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8080'
 
@@ -16,7 +16,7 @@ async function getOrgRegistry(orgId: string): Promise<{ id: string } | null> {
 }
 
 export function useOrgItems(selectedOrg: Organization | null, itemType: string) {
-  const [items, setItems] = useState<SkillItem[]>([])
+  const [items, setItems] = useState<CapabilityItem[]>([])
   const [loading, setLoading] = useState(false)
 
   useEffect(() => {

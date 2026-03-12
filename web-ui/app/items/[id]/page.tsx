@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { itemApi, artifactApi, type SkillItem, type SkillArtifact } from '@/lib/api-client'
+import { itemApi, artifactApi, type CapabilityItem, type CapabilityArtifact } from '@/lib/api-client'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
 import { useTranslations } from 'next-intl'
@@ -42,7 +42,7 @@ function formatDate(iso: string) {
   return new Date(iso).toLocaleDateString('zh-CN', { year: 'numeric', month: 'short', day: 'numeric' })
 }
 
-function installCommand(item: SkillItem) {
+function installCommand(item: CapabilityItem) {
   const owner = item.registry?.orgId && item.registry.orgId !== 'public'
     ? item.registry.orgId
     : item.createdBy || 'public'
@@ -73,8 +73,8 @@ function renderMarkdown(content: string) {
 export default function ItemDetailPage() {
   const { id } = useParams<{ id: string }>()
   const router = useRouter()
-  const [item, setItem] = useState<SkillItem | null>(null)
-  const [artifacts, setArtifacts] = useState<SkillArtifact[]>([])
+  const [item, setItem] = useState<CapabilityItem | null>(null)
+  const [artifacts, setArtifacts] = useState<CapabilityArtifact[]>([])
   const [loading, setLoading] = useState(true)
   const [copiedCmd, setCopiedCmd] = useState(false)
   const [copiedArtifact, setCopiedArtifact] = useState<string | null>(null)

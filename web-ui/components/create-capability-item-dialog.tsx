@@ -16,15 +16,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select'
-import { itemApi, type SkillItem, type Organization } from '@/lib/api-client'
-
-const ITEM_TYPES = [
-  { value: 'skill', label: 'Skill', description: 'Reusable CLAUDE.md skill instructions' },
-  { value: 'subagent', label: 'Subagent', description: 'Specialized AI subagent' },
-  { value: 'command', label: 'Command', description: 'Slash command for Claude Code' },
-  { value: 'hook', label: 'Hook', description: 'Lifecycle hook (pre/post tool use)' },
-  { value: 'mcp', label: 'MCP Server', description: 'Model Context Protocol server' },
-]
+import { itemApi, type CapabilityItem, type Organization } from '@/lib/api-client'
+import { useTranslations } from 'next-intl'
 
 const CATEGORIES = [
   'developer-tools', 'database', 'file-system', 'cloud-infrastructure',
@@ -36,23 +29,25 @@ function slugify(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
 }
 
-interface CreateSkillItemDialogProps {
+interface CreateCapabilityItemDialogProps {
   open: boolean
   onOpenChange: (open: boolean) => void
   registryId: string
   userId: string
   organizations: Organization[]
-  onCreated: (item: SkillItem) => void
+  onCreated: (item: CapabilityItem) => void
 }
 
-export function CreateSkillItemDialog({
+export function CreateCapabilityItemDialog({
   open,
   onOpenChange,
   registryId,
   userId,
   organizations,
   onCreated,
-}: CreateSkillItemDialogProps) {
+}: CreateCapabilityItemDialogProps) {
+  const t = useTranslations('createCapabilityItem')
+
   const [itemType, setItemType] = useState('skill')
   const [name, setName] = useState('')
   const [slug, setSlug] = useState('')
@@ -64,6 +59,20 @@ export function CreateSkillItemDialog({
   const [orgId, setOrgId] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
+
+  const itemTypes = [
+    { value: 'skill', label: t('typeSkillLabel'), description: t('typeSkillDesc') },
+    { value: 'subagent', label: t('typeSubagentLabel'), description: t('typeSubagentDesc') },
+    { value: 'command', label: t('typeCommandLabel'), description: t('typeCommandDesc') },
+    { value: 'hook', label: t('typeHookLabel'), description: t('typeHookDesc') },
+    { value: 'mcp', label: t('typeMcpLabel'), description: t('typeMcpDesc') },
+  ]
+
+  const contentPlaceholders: Record<string, string> = {
+    skill: '# Skill Instructions\n\nDescribe what this skill does...',
+    command: '# Command\n\nDescribe the command behavior...',
+    hook: '#!/bin/bash\n# Hook script',
+  }
 
   const handleNameChange = (val: string) => {
     setName(val)
@@ -101,7 +110,7 @@ export function CreateSkillItemDialog({
       setVisibility('public')
       setOrgId('')
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to create item')
+      setError(err instanceof Error ? err.message : t('errorFailed'))
     } finally {
       setLoading(false)
     }
@@ -111,25 +120,25 @@ export function CreateSkillItemDialog({
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="sm:max-w-2xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>Create Skill Item</DialogTitle>
+          <DialogTitle>{t('title')}</DialogTitle>
         </DialogHeader>
         <form onSubmit={handleSubmit} className="space-y-4 mt-2">
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Type <span className="text-destructive">*</span></label>
+            <label className="text-sm font-medium">{t('labelType')} <span className="text-destructive">*</span></label>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {ITEM_TYPES.map(t => (
+              {itemTypes.map(type => (
                 <button
-                  key={t.value}
+                  key={type.value}
                   type="button"
-                  onClick={() => setItemType(t.value)}
+                  onClick={() => setItemType(type.value)}
                   className={`p-3 rounded-lg border text-left transition-colors ${
-                    itemType === t.value
+                    itemType === type.value
                       ? 'border-primary bg-primary/10'
                       : 'border-border hover:border-primary/40 hover:bg-muted/50'
                   }`}
                 >
-                  <div className="text-sm font-medium">{t.label}</div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{t.description}</div>
+                  <div className="text-sm font-medium">{type.label}</div>
+                  <div className="text-xs text-muted-foreground mt-0.5">{type.description}</div>
                 </button>
               ))}
             </div>
@@ -137,36 +146,36 @@ export function CreateSkillItemDialog({
 
           <div className="grid grid-cols-2 gap-4">
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Name <span className="text-destructive">*</span></label>
+              <label className="text-sm font-medium">{t('labelName')} <span className="text-destructive">*</span></label>
               <Input
                 value={name}
                 onChange={e => handleNameChange(e.target.value)}
-                placeholder="My Skill"
+                placeholder={t('placeholderName')}
                 required
               />
             </div>
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Slug <span className="text-destructive">*</span></label>
+              <label className="text-sm font-medium">{t('labelSlug')} <span className="text-destructive">*</span></label>
               <Input
                 value={slug}
                 onChange={e => handleSlugChange(e.target.value)}
-                placeholder="my-skill"
+                placeholder={t('placeholderSlug')}
                 required
               />
             </div>
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Description</label>
+            <label className="text-sm font-medium">{t('labelDescription')}</label>
             <Input
               value={description}
               onChange={e => setDescription(e.target.value)}
-              placeholder="Brief description"
+              placeholder={t('placeholderDescription')}
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Category</label>
+            <label className="text-sm font-medium">{t('labelCategory')}</label>
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger>
                 <SelectValue />
@@ -182,40 +191,35 @@ export function CreateSkillItemDialog({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Content</label>
+            <label className="text-sm font-medium">{t('labelContent')}</label>
             <textarea
               value={content}
               onChange={e => setContent(e.target.value)}
-              placeholder={
-                itemType === 'skill' ? '# Skill Instructions\n\nDescribe what this skill does...' :
-                itemType === 'command' ? '# Command\n\nDescribe the command behavior...' :
-                itemType === 'hook' ? '#!/bin/bash\n# Hook script' :
-                'Content...'
-              }
+              placeholder={contentPlaceholders[itemType] ?? 'Content...'}
               rows={8}
               className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm font-mono resize-y focus:outline-none focus:ring-1 focus:ring-ring"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-sm font-medium">Visibility</label>
+            <label className="text-sm font-medium">{t('labelVisibility')}</label>
             <Select value={visibility} onValueChange={v => setVisibility(v as 'public' | 'org')}>
               <SelectTrigger>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="public">Public — visible to everyone</SelectItem>
-                <SelectItem value="org">Organization — visible to org members only</SelectItem>
+                <SelectItem value="public">{t('visibilityPublic')}</SelectItem>
+                <SelectItem value="org">{t('visibilityOrg')}</SelectItem>
               </SelectContent>
             </Select>
           </div>
 
           {visibility === 'org' && organizations.length > 0 && (
             <div className="space-y-1.5">
-              <label className="text-sm font-medium">Organization</label>
+              <label className="text-sm font-medium">{t('labelOrganization')}</label>
               <Select value={orgId} onValueChange={setOrgId}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select organization" />
+                  <SelectValue placeholder={t('placeholderOrganization')} />
                 </SelectTrigger>
                 <SelectContent>
                   {organizations.map(org => (
@@ -231,9 +235,9 @@ export function CreateSkillItemDialog({
           {error && <p className="text-sm text-destructive">{error}</p>}
 
           <div className="flex justify-end gap-2 pt-2">
-            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>Cancel</Button>
+            <Button type="button" variant="ghost" onClick={() => onOpenChange(false)}>{t('cancel')}</Button>
             <Button type="submit" disabled={loading || !name.trim() || !slug.trim()}>
-              {loading ? 'Creating…' : 'Create'}
+              {loading ? t('creating') : t('create')}
             </Button>
           </div>
         </form>

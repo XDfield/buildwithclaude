@@ -2,20 +2,14 @@
 
 import { useState, useEffect, useCallback } from 'react'
 import { Button } from '@/components/ui/button'
-import { Plus, Building2, Package, Trash2, Pencil } from 'lucide-react'
+import { Plus, Building2, Package, Trash2, Pencil, GitBranch, ChevronDown, ChevronUp } from 'lucide-react'
 import { CreateOrgDialog } from '@/components/create-org-dialog'
-import { CreateSkillItemDialog } from '@/components/create-skill-item-dialog'
+import { CreateCapabilityItemDialog } from '@/components/create-capability-item-dialog'
 import { ItemCrudDialog } from '@/components/item-crud-dialog'
-import { orgApi, registryApi, itemApi, type Organization, type SkillItem, type SkillRegistry } from '@/lib/api-client'
+import { OrgSyncTab } from '@/components/org-sync-tab'
+import { orgApi, registryApi, itemApi, type Organization, type CapabilityItem, type CapabilityRegistry } from '@/lib/api-client'
 import type { CasdoorUser } from '@/lib/auth'
-
-const ITEM_TYPE_LABELS: Record<string, string> = {
-  skill: 'Skill',
-  subagent: 'Subagent',
-  command: 'Command',
-  hook: 'Hook',
-  mcp: 'MCP',
-}
+import { useTranslations } from 'next-intl'
 
 const ITEM_TYPE_COLORS: Record<string, string> = {
   skill: 'bg-blue-500/10 text-blue-500',
@@ -26,23 +20,28 @@ const ITEM_TYPE_COLORS: Record<string, string> = {
 }
 
 interface DashboardClientProps {
-  user: CasdoorUser
+  user: CasdoorUser | null
+  loginUrl?: string
 }
 
-export default function DashboardClient({ user }: DashboardClientProps) {
+export default function DashboardClient({ user, loginUrl }: DashboardClientProps) {
+  const t = useTranslations('dashboard')
+
   const [orgs, setOrgs] = useState<Organization[]>([])
-  const [items, setItems] = useState<SkillItem[]>([])
-  const [personalRegistry, setPersonalRegistry] = useState<SkillRegistry | null>(null)
+  const [items, setItems] = useState<CapabilityItem[]>([])
+  const [personalRegistry, setPersonalRegistry] = useState<CapabilityRegistry | null>(null)
   const [loadingOrgs, setLoadingOrgs] = useState(true)
   const [loadingItems, setLoadingItems] = useState(true)
   const [showCreateOrg, setShowCreateOrg] = useState(false)
   const [showCreateItem, setShowCreateItem] = useState(false)
-  const [editItem, setEditItem] = useState<SkillItem | null>(null)
+  const [editItem, setEditItem] = useState<CapabilityItem | null>(null)
   const [itemTypeFilter, setItemTypeFilter] = useState('all')
+  const [expandedSyncOrg, setExpandedSyncOrg] = useState<string | null>(null)
 
-  const userId = user.sub
+  const userId = user?.sub ?? ''
 
   const loadOrgs = useCallback(async () => {
+    if (!userId) return
     setLoadingOrgs(true)
     try {
       const res = await orgApi.listMy(userId)
@@ -52,6 +51,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   }, [userId])
 
   const loadItems = useCallback(async () => {
+    if (!userId) return
     setLoadingItems(true)
     try {
       const res = await itemApi.listMy(userId)
@@ -61,20 +61,35 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   }, [userId])
 
   const ensureRegistry = useCallback(async () => {
+    if (!userId || !user) return
     try {
       const reg = await registryApi.ensurePersonal(userId, user.preferred_username || user.name)
       setPersonalRegistry(reg)
     } catch {}
-  }, [userId, user.preferred_username, user.name])
+  }, [userId, user])
 
   useEffect(() => {
+    if (!user) return
     loadOrgs()
     loadItems()
     ensureRegistry()
-  }, [loadOrgs, loadItems, ensureRegistry])
+  }, [user, loadOrgs, loadItems, ensureRegistry])
+
+  if (!user) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-muted-foreground mb-4">{t('loginRequired')}</p>
+          <a href={loginUrl} className="inline-flex items-center justify-center rounded-md bg-primary text-primary-foreground px-4 py-2 text-sm font-medium hover:bg-primary/90 transition-colors">
+            {t('login')}
+          </a>
+        </div>
+      </div>
+    )
+  }
 
   const handleDeleteItem = async (id: string) => {
-    if (!confirm('Delete this item?')) return
+    if (!confirm(t('deleteItemConfirm'))) return
     try {
       await itemApi.delete(id)
       setItems(prev => prev.filter(i => i.id !== id))
@@ -82,11 +97,22 @@ export default function DashboardClient({ user }: DashboardClientProps) {
   }
 
   const handleDeleteOrg = async (id: string) => {
-    if (!confirm('Delete this organization?')) return
+    if (!confirm(t('deleteOrgConfirm'))) return
     try {
       await orgApi.delete(id)
       setOrgs(prev => prev.filter(o => o.id !== id))
     } catch {}
+  }
+
+  const getItemTypeLabel = (type: string) => {
+    const map: Record<string, string> = {
+      skill: t('itemTypeSkill'),
+      subagent: t('itemTypeSubagent'),
+      command: t('itemTypeCommand'),
+      hook: t('itemTypeHook'),
+      mcp: t('itemTypeMcp'),
+    }
+    return map[type] ?? type
   }
 
   const filteredItems = itemTypeFilter === 'all'
@@ -98,14 +124,14 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       <div className="container mx-auto px-4 py-12">
         <div className="flex items-center justify-between mb-10">
           <div>
-            <h1 className="text-display-2 mb-1">Dashboard</h1>
+            <h1 className="text-display-2 mb-1">{t('title')}</h1>
             <p className="text-muted-foreground">
-              Welcome, {user.preferred_username || user.name}
+              {t('welcome', { name: user.preferred_username || user.name })}
             </p>
           </div>
           <Button onClick={() => setShowCreateItem(true)} disabled={!personalRegistry}>
             <Plus className="h-4 w-4 mr-1.5" />
-            New Item
+            {t('newItem')}
           </Button>
         </div>
 
@@ -114,23 +140,23 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-medium flex items-center gap-2">
               <Building2 className="h-5 w-5 text-muted-foreground" />
-              Organizations
+              {t('organizations')}
             </h2>
             <Button variant="outline" size="sm" onClick={() => setShowCreateOrg(true)}>
               <Plus className="h-3.5 w-3.5 mr-1" />
-              New
+              {t('new')}
             </Button>
           </div>
 
           {loadingOrgs ? (
-            <div className="text-sm text-muted-foreground">Loading…</div>
+            <div className="text-sm text-muted-foreground">{t('loadingOrgs')}</div>
           ) : orgs.length === 0 ? (
             <div className="border border-dashed border-border rounded-lg p-8 text-center">
               <Building2 className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
-              <p className="text-sm text-muted-foreground mb-3">No organizations yet</p>
+              <p className="text-sm text-muted-foreground mb-3">{t('noOrgsYet')}</p>
               <Button variant="outline" size="sm" onClick={() => setShowCreateOrg(true)}>
                 <Plus className="h-3.5 w-3.5 mr-1" />
-                Create Organization
+                {t('createOrganization')}
               </Button>
             </div>
           ) : (
@@ -148,7 +174,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                           ? 'bg-green-500/10 text-green-500'
                           : 'bg-muted text-muted-foreground'
                       }`}>
-                        {org.visibility}
+                        {org.visibility === 'public' ? t('visibilityPublic') : org.visibility}
                       </span>
                     </div>
                   </div>
@@ -156,6 +182,21 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                     <p className="text-xs text-muted-foreground line-clamp-2">{org.description}</p>
                   )}
                   <div className="flex items-center gap-1 mt-auto pt-1">
+                    {org.orgType === 'sync' && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground"
+                        onClick={() => setExpandedSyncOrg(expandedSyncOrg === org.id ? null : org.id)}
+                      >
+                        <GitBranch className="h-3 w-3 mr-1" />
+                        {t('sync')}
+                        {expandedSyncOrg === org.id
+                          ? <ChevronUp className="h-3 w-3 ml-1" />
+                          : <ChevronDown className="h-3 w-3 ml-1" />
+                        }
+                      </Button>
+                    )}
                     <Button
                       variant="ghost"
                       size="sm"
@@ -165,6 +206,11 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       <Trash2 className="h-3 w-3" />
                     </Button>
                   </div>
+                  {org.orgType === 'sync' && expandedSyncOrg === org.id && (
+                    <div className="mt-3 pt-3 border-t border-border">
+                      <OrgSyncTab orgId={org.id} />
+                    </div>
+                  )}
                 </div>
               ))}
             </div>
@@ -176,48 +222,48 @@ export default function DashboardClient({ user }: DashboardClientProps) {
           <div className="flex items-center justify-between mb-4">
             <h2 className="text-lg font-medium flex items-center gap-2">
               <Package className="h-5 w-5 text-muted-foreground" />
-              My Items
+              {t('myItems')}
               {items.length > 0 && (
                 <span className="text-sm text-muted-foreground font-normal">({items.length})</span>
               )}
             </h2>
             <Button variant="outline" size="sm" onClick={() => setShowCreateItem(true)} disabled={!personalRegistry}>
               <Plus className="h-3.5 w-3.5 mr-1" />
-              New
+              {t('new')}
             </Button>
           </div>
 
           {/* Type filter */}
           {items.length > 0 && (
             <div className="flex gap-2 flex-wrap mb-4">
-              {['all', 'skill', 'subagent', 'command', 'hook', 'mcp'].map(t => (
+              {['all', 'skill', 'subagent', 'command', 'hook', 'mcp'].map(type => (
                 <button
-                  key={t}
-                  onClick={() => setItemTypeFilter(t)}
+                  key={type}
+                  onClick={() => setItemTypeFilter(type)}
                   className={`px-3 py-1.5 text-sm rounded-md transition-colors ${
-                    itemTypeFilter === t
+                    itemTypeFilter === type
                       ? 'bg-primary text-primary-foreground'
                       : 'text-muted-foreground hover:text-foreground hover:bg-muted'
                   }`}
                 >
-                  {t === 'all' ? 'All' : ITEM_TYPE_LABELS[t] || t}
+                  {type === 'all' ? t('all') : getItemTypeLabel(type)}
                 </button>
               ))}
             </div>
           )}
 
           {loadingItems ? (
-            <div className="text-sm text-muted-foreground">Loading…</div>
+            <div className="text-sm text-muted-foreground">{t('loadingItems')}</div>
           ) : filteredItems.length === 0 ? (
             <div className="border border-dashed border-border rounded-lg p-8 text-center">
               <Package className="h-8 w-8 text-muted-foreground mx-auto mb-3" />
               <p className="text-sm text-muted-foreground mb-3">
-                {items.length === 0 ? 'No items yet' : 'No items of this type'}
+                {items.length === 0 ? t('noItemsYet') : t('noItemsOfType')}
               </p>
               {items.length === 0 && (
                 <Button variant="outline" size="sm" onClick={() => setShowCreateItem(true)} disabled={!personalRegistry}>
                   <Plus className="h-3.5 w-3.5 mr-1" />
-                  Create Item
+                  {t('createItem')}
                 </Button>
               )}
             </div>
@@ -226,10 +272,10 @@ export default function DashboardClient({ user }: DashboardClientProps) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b border-border bg-muted/30">
-                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Name</th>
-                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Type</th>
-                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Category</th>
-                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">Visibility</th>
+                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">{t('colName')}</th>
+                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">{t('colType')}</th>
+                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">{t('colCategory')}</th>
+                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground">{t('colVisibility')}</th>
                     <th className="px-4 py-2.5" />
                   </tr>
                 </thead>
@@ -242,7 +288,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                       </td>
                       <td className="px-4 py-3">
                         <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${ITEM_TYPE_COLORS[item.itemType] || 'bg-muted text-muted-foreground'}`}>
-                          {ITEM_TYPE_LABELS[item.itemType] || item.itemType}
+                          {getItemTypeLabel(item.itemType)}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-muted-foreground">
@@ -254,7 +300,7 @@ export default function DashboardClient({ user }: DashboardClientProps) {
                             ? 'bg-green-500/10 text-green-500'
                             : 'bg-muted text-muted-foreground'
                         }`}>
-                          {item.visibility === 'public' ? 'Public' : 'Org'}
+                          {item.visibility === 'public' ? t('visibilityPublic') : t('visibilityOrg')}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-right">
@@ -294,13 +340,13 @@ export default function DashboardClient({ user }: DashboardClientProps) {
       />
 
       {personalRegistry && (
-        <CreateSkillItemDialog
+        <CreateCapabilityItemDialog
           open={showCreateItem}
           onOpenChange={setShowCreateItem}
           registryId={personalRegistry.id}
           userId={userId}
           organizations={orgs}
-          onCreated={item => {
+          onCreated={(item: CapabilityItem) => {
             setItems(prev => [item, ...prev])
             loadItems()
           }}
