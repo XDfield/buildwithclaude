@@ -18,9 +18,67 @@ export interface Organization {
   displayName: string
   description: string
   visibility: 'public' | 'private'
+  orgType: 'normal' | 'sync'
   ownerId: string
   createdAt: string
   updatedAt: string
+}
+
+export interface SyncJob {
+  id: string
+  registryId: string
+  triggerType: 'scheduled' | 'manual' | 'webhook'
+  triggerUser: string
+  priority: number
+  status: 'pending' | 'running' | 'success' | 'failed' | 'cancelled'
+  retryCount: number
+  maxAttempts: number
+  lastError: string
+  scheduledAt: string
+  startedAt?: string
+  finishedAt?: string
+  syncLogId?: string
+  createdAt: string
+}
+
+export interface SyncLog {
+  id: string
+  registryId: string
+  triggerType: 'scheduled' | 'manual' | 'webhook'
+  triggerUser: string
+  status: 'running' | 'success' | 'failed' | 'cancelled'
+  commitSha: string
+  previousSha: string
+  totalItems: number
+  addedItems: number
+  updatedItems: number
+  deletedItems: number
+  skippedItems: number
+  failedItems: number
+  errorMessage: string
+  durationMs: number
+  startedAt: string
+  finishedAt?: string
+  createdAt: string
+}
+
+export interface SyncStatus {
+  syncStatus: string
+  lastSyncedAt?: string
+  lastSyncSha: string
+  pendingJobs: number
+  lastLog?: SyncLog
+}
+
+export interface CreateSyncRegistryInput {
+  externalUrl: string
+  externalBranch?: string
+  syncInterval?: number
+  syncEnabled?: boolean
+  includePatterns?: string[]
+  excludePatterns?: string[]
+  conflictStrategy?: string
+  webhookSecret?: string
 }
 
 export interface OrgMember {
@@ -32,11 +90,20 @@ export interface OrgMember {
   createdAt: string
 }
 
-export interface SkillRegistry {
+export interface CapabilityRegistry {
   id: string
   name: string
   description: string
   sourceType: string
+  externalUrl: string
+  externalBranch: string
+  syncEnabled: boolean
+  syncInterval: number
+  lastSyncedAt?: string
+  lastSyncSha: string
+  syncStatus: string
+  syncConfig?: Record<string, unknown>
+  lastSyncLogId?: string
   visibility: string
   orgId: string
   ownerId: string
@@ -44,7 +111,7 @@ export interface SkillRegistry {
   updatedAt: string
 }
 
-export interface SkillArtifact {
+export interface CapabilityArtifact {
   id: string
   itemId: string
   version: string
@@ -58,7 +125,7 @@ export interface SkillArtifact {
   createdAt: string
 }
 
-export interface SkillVersion {
+export interface CapabilityVersion {
   id: string
   itemId: string
   version: string
@@ -67,7 +134,7 @@ export interface SkillVersion {
   createdAt: string
 }
 
-export interface SkillItem {
+export interface CapabilityItem {
   id: string
   registryId: string
   slug: string
@@ -82,17 +149,28 @@ export interface SkillItem {
   createdBy: string
   createdAt: string
   updatedAt: string
-  registry?: SkillRegistry
-  versions?: SkillVersion[]
-  artifacts?: SkillArtifact[]
+  registry?: CapabilityRegistry
+  versions?: CapabilityVersion[]
+  artifacts?: CapabilityArtifact[]
 }
 
 export const orgApi = {
   listMy: (userId: string) =>
     apiFetch<{ organizations: Organization[] }>(`/api/organizations/my?userId=${encodeURIComponent(userId)}`),
 
-  create: (data: { name: string; displayName?: string; description?: string; visibility?: string; ownerId: string }) =>
-    apiFetch<Organization>('/api/organizations', { method: 'POST', body: JSON.stringify(data) }),
+  create: (data: {
+    name: string
+    displayName?: string
+    description?: string
+    visibility?: string
+    ownerId: string
+    orgType?: 'normal' | 'sync'
+    syncRegistry?: CreateSyncRegistryInput
+  }) =>
+    apiFetch<Organization | { organization: Organization; registry: CapabilityRegistry }>(
+      '/api/organizations',
+      { method: 'POST', body: JSON.stringify(data) }
+    ),
 
   update: (id: string, data: { name?: string; displayName?: string; description?: string; visibility?: string }) =>
     apiFetch<Organization>(`/api/organizations/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
@@ -110,23 +188,61 @@ export const orgApi = {
     apiFetch<{ message: string }>(`/api/organizations/${orgId}/members/${userId}`, { method: 'DELETE' }),
 }
 
+export const syncApi = {
+  triggerOrgSync: (orgId: string, dryRun?: boolean) =>
+    apiFetch<{ jobId: string; status: string }>(
+      `/api/organizations/${orgId}/sync${dryRun ? '?dryRun=true' : ''}`,
+      { method: 'POST' }
+    ),
+
+  cancelOrgSync: (orgId: string) =>
+    apiFetch<{ message: string }>(`/api/organizations/${orgId}/sync/cancel`, { method: 'POST' }),
+
+  getOrgSyncStatus: (orgId: string) =>
+    apiFetch<SyncStatus>(`/api/organizations/${orgId}/sync-status`),
+
+  listOrgSyncLogs: (orgId: string, page = 1, pageSize = 20) =>
+    apiFetch<{ logs: SyncLog[]; total: number }>(
+      `/api/organizations/${orgId}/sync-logs?page=${page}&pageSize=${pageSize}`
+    ),
+
+  listOrgSyncJobs: (orgId: string, page = 1, pageSize = 20) =>
+    apiFetch<{ jobs: SyncJob[]; total: number }>(
+      `/api/organizations/${orgId}/sync-jobs?page=${page}&pageSize=${pageSize}`
+    ),
+
+  triggerRegistrySync: (registryId: string, dryRun?: boolean) =>
+    apiFetch<{ jobId: string; status: string }>(
+      `/api/registries/${registryId}/sync${dryRun ? '?dryRun=true' : ''}`,
+      { method: 'POST' }
+    ),
+
+  getRegistrySyncStatus: (registryId: string) =>
+    apiFetch<SyncStatus>(`/api/registries/${registryId}/sync-status`),
+
+  listRegistrySyncLogs: (registryId: string, page = 1, pageSize = 20) =>
+    apiFetch<{ logs: SyncLog[]; total: number }>(
+      `/api/registries/${registryId}/sync-logs?page=${page}&pageSize=${pageSize}`
+    ),
+}
+
 export const registryApi = {
   listMy: (ownerId: string) =>
-    apiFetch<{ registries: SkillRegistry[] }>(`/api/registries/my?ownerId=${encodeURIComponent(ownerId)}`),
+    apiFetch<{ registries: CapabilityRegistry[] }>(`/api/registries/my?ownerId=${encodeURIComponent(ownerId)}`),
 
   ensurePersonal: (ownerId: string, username?: string) =>
-    apiFetch<SkillRegistry>('/api/registries/ensure-personal', {
+    apiFetch<CapabilityRegistry>('/api/registries/ensure-personal', {
       method: 'POST',
       body: JSON.stringify({ ownerId, username }),
     }),
 
   create: (data: { name: string; description?: string; visibility?: string; orgId?: string; ownerId: string }) =>
-    apiFetch<SkillRegistry>('/api/registries', { method: 'POST', body: JSON.stringify({ ...data, sourceType: 'internal' }) }),
+    apiFetch<CapabilityRegistry>('/api/registries', { method: 'POST', body: JSON.stringify({ ...data, sourceType: 'internal' }) }),
 }
 
 export const itemApi = {
   listMy: (ownerId: string, type?: string) =>
-    apiFetch<{ items: SkillItem[] }>(
+    apiFetch<{ items: CapabilityItem[] }>(
       `/api/items/my?ownerId=${encodeURIComponent(ownerId)}${type ? `&type=${type}` : ''}`
     ),
 
@@ -147,7 +263,7 @@ export const itemApi = {
     if (params?.limit) p.set('limit', String(params.limit))
     if (params?.offset) p.set('offset', String(params.offset))
     if (params?.status) p.set('status', params.status)
-    return apiFetch<{ items: SkillItem[]; total: number; hasMore: boolean }>(
+    return apiFetch<{ items: CapabilityItem[]; total: number; hasMore: boolean }>(
       `/api/items?${p.toString()}`
     )
   },
@@ -164,7 +280,7 @@ export const itemApi = {
     slug?: string
     createdBy?: string
   }) =>
-    apiFetch<SkillItem>('/api/items', { method: 'POST', body: JSON.stringify(data) }),
+    apiFetch<CapabilityItem>('/api/items', { method: 'POST', body: JSON.stringify(data) }),
 
   create: (registryId: string, data: {
     slug: string
@@ -177,29 +293,29 @@ export const itemApi = {
     visibility?: string
     createdBy: string
   }) =>
-    apiFetch<SkillItem>(`/api/registries/${registryId}/items`, {
+    apiFetch<CapabilityItem>(`/api/registries/${registryId}/items`, {
       method: 'POST',
       body: JSON.stringify(data),
     }),
 
-  update: (id: string, data: Partial<SkillItem> & { commitMsg?: string }) =>
-    apiFetch<SkillItem>(`/api/items/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+  update: (id: string, data: Partial<CapabilityItem> & { commitMsg?: string }) =>
+    apiFetch<CapabilityItem>(`/api/items/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
 
   delete: (id: string) =>
     apiFetch<{ message: string }>(`/api/items/${id}`, { method: 'DELETE' }),
 
   get: (id: string) =>
-    apiFetch<SkillItem>(`/api/items/${id}`),
+    apiFetch<CapabilityItem>(`/api/items/${id}`),
 }
 
 export const registryApi2 = {
   getPublic: () =>
-    apiFetch<SkillRegistry>('/api/registries/public'),
+    apiFetch<CapabilityRegistry>('/api/registries/public'),
 }
 
 export const artifactApi = {
   list: (itemId: string) =>
-    apiFetch<{ artifacts: SkillArtifact[] }>(`/api/items/${itemId}/artifacts`),
+    apiFetch<{ artifacts: CapabilityArtifact[] }>(`/api/items/${itemId}/artifacts`),
 
   downloadUrl: (artifactId: string) =>
     `${API_BASE}/api/artifacts/${artifactId}/download`,
