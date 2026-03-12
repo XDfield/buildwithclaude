@@ -150,8 +150,8 @@ export default function ItemDetailPage() {
   const latestArtifact = artifacts.find(a => a.isLatest) || artifacts[0]
 
   return (
-    <div className="min-h-screen">
-      <div className="px-8 py-10 max-w-4xl">
+    <div className="min-h-screen flex flex-col items-center">
+      <div className="px-8 py-10 w-full max-w-4xl">
 
         {/* Back */}
         <button
@@ -218,112 +218,104 @@ export default function ItemDetailPage() {
           </Button>
         </div>
 
-        <div className="grid md:grid-cols-3 gap-8">
-          {/* Main content */}
-          <div className="md:col-span-2 space-y-8">
+        <div className="space-y-10">
+          {item.content && (
+            <section>
+              <h2 className="text-base font-semibold text-muted-foreground uppercase tracking-wide mb-4">
+                {contentLabel}
+              </h2>
+              <div className="bg-card rounded-xl p-6 border border-border prose prose-sm max-w-none text-sm leading-relaxed">
+                {renderMarkdown(item.content)}
+              </div>
+            </section>
+          )}
 
-            {item.content && (
-              <section>
-                <h2 className="text-lg font-medium mb-4">
-                  {contentLabel}
-                </h2>
-                <div className="bg-card rounded-lg p-6 border border-border prose prose-sm max-w-none text-sm leading-relaxed">
-                  {renderMarkdown(item.content)}
-                </div>
-              </section>
-            )}
-
-            {artifacts.length > 0 && (
-              <section>
-                <h2 className="text-lg font-medium mb-4">{t('artifacts')}</h2>
-                <div className="space-y-2">
-                  {artifacts.map(artifact => (
-                    <div key={artifact.id} className="flex items-center justify-between gap-3 p-3 rounded-lg border border-border bg-card">
-                      <div className="flex items-center gap-2.5 min-w-0">
-                        <FileArchive className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <div className="min-w-0">
-                          <div className="text-sm font-medium truncate">{artifact.filename}</div>
-                          <div className="text-xs text-muted-foreground">
-                            v{artifact.version} · {formatBytes(artifact.fileSize)} · {artifact.downloadCount} {t('downloads')}
-                            {artifact.isLatest && <span className="ml-1.5 text-primary font-medium">{t('latest')}</span>}
-                          </div>
+          {artifacts.length > 0 && (
+            <section>
+              <h2 className="text-base font-semibold text-muted-foreground uppercase tracking-wide mb-4">{t('artifacts')}</h2>
+              <div className="space-y-3">
+                {artifacts.map(artifact => (
+                  <div key={artifact.id} className="flex items-center justify-between gap-4 p-4 rounded-xl border border-border bg-card hover:bg-accent/50 transition-colors">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="p-2 rounded-lg bg-primary/10">
+                        <FileArchive className="h-5 w-5 text-primary shrink-0" />
+                      </div>
+                      <div className="min-w-0">
+                        <div className="font-medium truncate">{artifact.filename}</div>
+                        <div className="text-sm text-muted-foreground">
+                          v{artifact.version} · {formatBytes(artifact.fileSize)} · {artifact.downloadCount} {t('downloads')}
+                          {artifact.isLatest && <Badge variant="secondary" className="ml-2 text-xs">{t('latest')}</Badge>}
                         </div>
                       </div>
-                      <div className="flex items-center gap-1 shrink-0">
-                        <Button
-                          size="sm" variant="ghost"
-                          onClick={async () => {
-                            await navigator.clipboard.writeText(artifactApi.downloadUrl(artifact.id))
-                            setCopiedArtifact(artifact.id)
-                            setTimeout(() => setCopiedArtifact(null), 2000)
-                          }}
-                        >
-                          {copiedArtifact === artifact.id ? <Check className="h-3.5 w-3.5 text-green-500" /> : <Copy className="h-3.5 w-3.5" />}
-                        </Button>
-                        <a href={artifactApi.downloadUrl(artifact.id)} download>
-                          <Button size="sm" variant="ghost"><Download className="h-3.5 w-3.5" /></Button>
-                        </a>
-                      </div>
                     </div>
-                  ))}
-                </div>
-              </section>
-            )}
-          </div>
+                    <div className="flex items-center gap-2 shrink-0">
+                      <Button
+                        size="sm" variant="ghost"
+                        onClick={async () => {
+                          await navigator.clipboard.writeText(artifactApi.downloadUrl(artifact.id))
+                          setCopiedArtifact(artifact.id)
+                          setTimeout(() => setCopiedArtifact(null), 2000)
+                        }}
+                      >
+                        {copiedArtifact === artifact.id ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+                      </Button>
+                      <a href={artifactApi.downloadUrl(artifact.id)} download>
+                        <Button size="sm" variant="default"><Download className="h-4 w-4 mr-1.5" /> {tc('download')}</Button>
+                      </a>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
-          {/* Sidebar */}
-          <div className="space-y-4">
-            <div className="p-4 rounded-lg border border-border bg-card space-y-3">
-              <h3 className="text-sm font-medium">{t('details')}</h3>
-              <dl className="space-y-2.5 text-sm">
-                <div className="flex justify-between gap-2">
+          <section>
+            <h2 className="text-base font-semibold text-muted-foreground uppercase tracking-wide mb-4">{t('details')}</h2>
+            <div className="bg-card rounded-xl border border-border overflow-hidden">
+              <dl className="divide-y divide-border">
+                <div className="flex items-center justify-between px-5 py-3.5">
                   <dt className="text-muted-foreground">{tc('type')}</dt>
                   <dd className="font-medium">{typeLabel}</dd>
                 </div>
-                <div className="flex justify-between gap-2">
+                <div className="flex items-center justify-between px-5 py-3.5">
                   <dt className="text-muted-foreground">{tc('visibility')}</dt>
                   <dd className="capitalize">{item.visibility}</dd>
                 </div>
                 {item.createdBy && (
-                  <div className="flex justify-between gap-2">
-                    <dt className="text-muted-foreground flex items-center gap-1"><User className="h-3 w-3" />{tc('author')}</dt>
-                    <dd className="truncate max-w-[120px]">{item.createdBy}</dd>
+                  <div className="flex items-center justify-between px-5 py-3.5">
+                    <dt className="text-muted-foreground flex items-center gap-2"><User className="h-4 w-4" />{tc('author')}</dt>
+                    <dd className="font-medium">{item.createdBy}</dd>
                   </div>
                 )}
-                <div className="flex justify-between gap-2">
-                  <dt className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{tc('created')}</dt>
+                <div className="flex items-center justify-between px-5 py-3.5">
+                  <dt className="text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4" />{tc('created')}</dt>
                   <dd>{formatDate(item.createdAt)}</dd>
                 </div>
-                <div className="flex justify-between gap-2">
-                  <dt className="text-muted-foreground flex items-center gap-1"><Clock className="h-3 w-3" />{tc('updated')}</dt>
+                <div className="flex items-center justify-between px-5 py-3.5">
+                  <dt className="text-muted-foreground flex items-center gap-2"><Clock className="h-4 w-4" />{tc('updated')}</dt>
                   <dd>{formatDate(item.updatedAt)}</dd>
                 </div>
+                {item.registry && (
+                  <>
+                    <div className="flex items-center justify-between px-5 py-3.5">
+                      <dt className="text-muted-foreground">{t('registry')}</dt>
+                      <dd className="font-medium">{item.registry.name}</dd>
+                    </div>
+                    {orgName && (
+                      <div className="flex items-center justify-between px-5 py-3.5">
+                        <dt className="text-muted-foreground flex items-center gap-2"><Building2 className="h-4 w-4" />{tc('org')}</dt>
+                        <dd>{orgName}</dd>
+                      </div>
+                    )}
+                  </>
+                )}
               </dl>
             </div>
+          </section>
 
-            {item.registry && (
-              <div className="p-4 rounded-lg border border-border bg-card space-y-3">
-                <h3 className="text-sm font-medium">{t('registry')}</h3>
-                <dl className="space-y-2.5 text-sm">
-                  <div className="flex justify-between gap-2">
-                    <dt className="text-muted-foreground">{tc('name')}</dt>
-                    <dd className="truncate max-w-[140px]">{item.registry.name}</dd>
-                  </div>
-                  {orgName && (
-                    <div className="flex justify-between gap-2">
-                      <dt className="text-muted-foreground flex items-center gap-1"><Building2 className="h-3 w-3" />{tc('org')}</dt>
-                      <dd className="truncate max-w-[140px]">{orgName}</dd>
-                    </div>
-                  )}
-                  <div className="flex justify-between gap-2">
-                    <dt className="text-muted-foreground">{tc('visibility')}</dt>
-                    <dd className="capitalize">{item.registry.visibility}</dd>
-                  </div>
-                </dl>
-              </div>
-            )}
-
-            <Button variant="outline" className="w-full justify-start gap-2" onClick={() => router.push(meta.backHref)}>
+          <div className="pt-4">
+            <Button variant="outline" className="w-full justify-center gap-2" onClick={() => router.push(meta.backHref)}>
+              <ArrowLeft className="h-4 w-4" />
               {t('browseMore', { type: typeLabel })}
             </Button>
           </div>

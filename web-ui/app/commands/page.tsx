@@ -112,7 +112,7 @@ export default function CommandsPage() {
         {loading ? (
           <div className="flex items-center justify-center py-16"><Loader2 className="h-8 w-8 animate-spin text-muted-foreground" /></div>
         ) : filteredItems.length > 0 ? (
-          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+          <div className="grid md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-6">
             {displayedItems.map(item => (
               <CapabilityItemCard key={item.id} item={item} />
             ))}
