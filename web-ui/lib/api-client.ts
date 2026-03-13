@@ -109,6 +109,7 @@ export interface CapabilityRegistry {
   visibility: string
   repoId: string
   ownerId: string
+  orgId?: string
   createdAt: string
   updatedAt: string
 }
@@ -136,6 +137,43 @@ export interface CapabilityVersion {
   createdAt: string
 }
 
+export type ScanStatus = 'pending' | 'scanning' | 'clean' | 'low' | 'medium' | 'high' | 'extreme' | 'error' | 'skipped' | 'unscanned'
+
+export interface ScanPermissions {
+  files: string[]
+  network: string[]
+  commands: string[]
+}
+
+export interface SecurityScan {
+  id: string
+  itemId: string
+  itemRevision: number
+  triggerType: string
+  scanModel: string
+  riskLevel: string
+  verdict: string
+  redFlags: string[]
+  permissions: ScanPermissions
+  summary: string
+  recommendations: string[]
+  durationMs: number
+  createdAt: string
+  finishedAt?: string
+}
+
+export interface ScanStatusResponse {
+  scanStatus: ScanStatus
+  lastScannedAt?: string
+  latestResult?: {
+    id: string
+    riskLevel: string
+    verdict: string
+    summary: string
+    scanModel: string
+  }
+}
+
 export interface CapabilityItem {
   id: string
   registryId: string
@@ -148,6 +186,8 @@ export interface CapabilityItem {
   content: string
   visibility: string
   status: string
+  securityStatus?: ScanStatus
+  lastScanId?: string
   createdBy: string
   createdAt: string
   updatedAt: string
@@ -359,6 +399,25 @@ export const itemApi = {
 export const registryApi2 = {
   getPublic: () =>
     apiFetch<CapabilityRegistry>('/api/registries/public'),
+}
+
+export const scanApi = {
+  trigger: (itemId: string) =>
+    apiFetch<{ jobId: string; status: string }>(`/api/items/${itemId}/scan`, { method: 'POST' }),
+
+  getStatus: (itemId: string) =>
+    apiFetch<ScanStatusResponse>(`/api/items/${itemId}/scan-status`),
+
+  listResults: (itemId: string, page = 1, size = 10) =>
+    apiFetch<{ results: SecurityScan[]; total: number }>(
+      `/api/items/${itemId}/scan-results?page=${page}&size=${size}`
+    ),
+
+  getResult: (scanId: string) =>
+    apiFetch<SecurityScan>(`/api/scan-results/${scanId}`),
+
+  cancelJob: (jobId: string) =>
+    apiFetch<{ message: string }>(`/api/scan-jobs/${jobId}/cancel`, { method: 'POST' }),
 }
 
 export const artifactApi = {

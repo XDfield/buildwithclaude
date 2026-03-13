@@ -17,6 +17,7 @@ import {
   Check,
   Tag,
 } from 'lucide-react'
+import { ScanBadge } from '@/components/scan-badge'
 
 const TYPE_ICON: Record<string, React.ElementType> = {
   skill: Sparkles,
@@ -84,11 +85,16 @@ export function CapabilityItemCard({ item, className }: CapabilityItemCardProps)
             {item.name}
           </span>
         </div>
-        {item.version && (
-          <span className="text-xs text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded shrink-0">
-            v{item.version}
-          </span>
-        )}
+        <div className="flex items-center gap-1.5 shrink-0">
+          {item.securityStatus && item.securityStatus !== 'unscanned' && (
+            <ScanBadge status={item.securityStatus} showLabel={false} />
+          )}
+          {item.version && (
+            <span className="text-xs text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
+              v{item.version}
+            </span>
+          )}
+        </div>
       </div>
 
       {/* Description */}

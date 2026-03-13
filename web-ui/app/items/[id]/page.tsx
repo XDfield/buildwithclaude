@@ -2,9 +2,11 @@
 
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
-import { itemApi, artifactApi, type CapabilityItem, type CapabilityArtifact } from '@/lib/api-client'
+import { itemApi, artifactApi, scanApi, type CapabilityItem, type CapabilityArtifact, type ScanStatusResponse } from '@/lib/api-client'
 import { Button } from '@/components/ui/button'
 import { Badge } from '@/components/ui/badge'
+import { ScanSection } from '@/components/scan-section'
+import { ScanInstallGuard } from '@/components/scan-install-guard'
 import { useTranslations } from 'next-intl'
 import {
   ArrowLeft,
@@ -75,6 +77,7 @@ export default function ItemDetailPage() {
   const router = useRouter()
   const [item, setItem] = useState<CapabilityItem | null>(null)
   const [artifacts, setArtifacts] = useState<CapabilityArtifact[]>([])
+  const [scanStatus, setScanStatus] = useState<ScanStatusResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [copiedCmd, setCopiedCmd] = useState(false)
   const [copiedArtifact, setCopiedArtifact] = useState<string | null>(null)
@@ -87,10 +90,11 @@ export default function ItemDetailPage() {
 
   useEffect(() => {
     if (!id) return
-    Promise.all([itemApi.get(id), artifactApi.list(id)])
-      .then(([itemData, artifactData]) => {
+    Promise.all([itemApi.get(id), artifactApi.list(id), scanApi.getStatus(id).catch(() => null)])
+      .then(([itemData, artifactData, scanData]) => {
         setItem(itemData)
         setArtifacts(artifactData.artifacts || [])
+        setScanStatus(scanData)
       })
       .catch(() => setItem(null))
       .finally(() => setLoading(false))
@@ -213,9 +217,26 @@ export default function ItemDetailPage() {
             <p className="text-xs text-muted-foreground mb-1 font-medium">{t('quickInstall')}</p>
             <code className="text-sm font-mono text-foreground/90">{installCommand(item)}</code>
           </div>
-          <Button size="sm" variant="ghost" onClick={handleCopyCmd} className="shrink-0">
-            {copiedCmd ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
-          </Button>
+          <div className="flex items-center gap-2 shrink-0">
+            <Button size="sm" variant="ghost" onClick={handleCopyCmd} title="Copy install command">
+              {copiedCmd ? <Check className="h-4 w-4 text-green-500" /> : <Copy className="h-4 w-4" />}
+            </Button>
+            <ScanInstallGuard
+              scanStatus={scanStatus?.scanStatus}
+              verdict={scanStatus?.latestResult?.verdict}
+              summary={scanStatus?.latestResult?.summary}
+              onConfirm={handleCopyCmd}
+            >
+              {(onClick) =>
+                (scanStatus?.latestResult?.verdict === 'caution' || scanStatus?.latestResult?.verdict === 'reject')
+                  ? (
+                    <Button size="sm" variant="outline" onClick={onClick}>
+                      安装
+                    </Button>
+                  ) : null
+              }
+            </ScanInstallGuard>
+          </div>
         </div>
 
         <div className="space-y-10">
@@ -229,6 +250,8 @@ export default function ItemDetailPage() {
               </div>
             </section>
           )}
+
+          <ScanSection itemId={item.id} />
 
           {artifacts.length > 0 && (
             <section>
